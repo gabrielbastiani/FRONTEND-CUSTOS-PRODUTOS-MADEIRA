@@ -14,6 +14,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { FieldHint } from '@/components/ui/field-hint';
+import { SectionIntro } from '@/components/ui/section-intro';
 import { LaborRate } from '@/types';
 import { useCreateLaborRate, useUpdateLaborRate } from '@/hooks/use-labor-rates';
 
@@ -72,10 +74,23 @@ export function LaborRateFormDialog({ open, onOpenChange, laborRate }: Props) {
             {isEditing ? 'Editar tipo de mão de obra' : 'Novo tipo de mão de obra'}
           </DialogTitle>
         </DialogHeader>
+
+        <SectionIntro>
+          Aqui você cadastra os diferentes tipos de trabalho envolvidos na fabricação
+          dos seus produtos, cada um com seu próprio valor por hora, como
+          &quot;Marceneiro Sênior&quot; ou &quot;Ajudante Geral&quot;. Isso permite que o sistema
+          calcule automaticamente o custo de mão de obra de cada produto, com base em
+          quantas horas cada tipo de profissional gasta para fabricá-lo.
+        </SectionIntro>
+
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="name">Nome / função *</Label>
             <Input id="name" {...register('name')} placeholder="Ex: Marceneiro Sênior" />
+            <FieldHint>
+              Nome do cargo ou função, usado depois na hora de montar um produto para
+              escolher qual tipo de mão de obra foi empregado.
+            </FieldHint>
             {errors.name && <p className="text-sm text-red-600">{errors.name.message}</p>}
           </div>
           <div className="space-y-2">
@@ -87,6 +102,11 @@ export function LaborRateFormDialog({ open, onOpenChange, laborRate }: Props) {
               {...register('hourlyRate')}
               placeholder="Ex: 35.00"
             />
+            <FieldHint>
+              Quanto custa uma hora de trabalho dessa função. O sistema multiplica esse
+              valor pelas horas gastas em cada produto para calcular o custo de mão de
+              obra automaticamente.
+            </FieldHint>
             {errors.hourlyRate && (
               <p className="text-sm text-red-600">{errors.hourlyRate.message}</p>
             )}

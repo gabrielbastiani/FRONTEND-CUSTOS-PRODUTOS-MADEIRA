@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api-client';
 import { ApiResponse, RawMaterial } from '@/types';
 import { toast } from 'sonner';
+import { ApiResponse, RawMaterial, StockMovement } from '@/types';
 
 const QUERY_KEY = ['raw-materials'];
 
@@ -56,5 +57,70 @@ export function useDeleteRawMaterial() {
       toast.success('Matéria-prima removida com sucesso.');
     },
     onError: (error: Error) => toast.error(error.message),
+  });
+}
+
+export function useRestockRawMaterial() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      quantity,
+      note,
+    }: {
+      id: string;
+      quantity: number;
+      note?: string;
+    }) => {
+      const { data } = await apiClient.post<ApiResponse<RawMaterial>>(
+        `/raw-materials/${id}/restock`,
+        { quantity, note }
+      );
+      return data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEY });
+      toast.success('Estoque reposto com sucesso.');
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+}
+
+export function useAdjustRawMaterialStock() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      quantity,
+      note,
+    }: {
+      id: string;
+      quantity: number;
+      note: string;
+    }) => {
+      const { data } = await apiClient.post<ApiResponse<RawMaterial>>(
+        `/raw-materials/${id}/adjust-stock`,
+        { quantity, note }
+      );
+      return data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEY });
+      toast.success('Estoque ajustado com sucesso.');
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+}
+
+export function useRawMaterialStockMovements(id: string) {
+  return useQuery({
+    queryKey: [...QUERY_KEY, id, 'stock-movements'],
+    queryFn: async () => {
+      const { data } = await apiClient.get<ApiResponse<StockMovement[]>>(
+        `/raw-materials/${id}/stock-movements`
+      );
+      return data.data;
+    },
+    enabled: !!id,
   });
 }

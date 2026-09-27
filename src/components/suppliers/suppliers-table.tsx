@@ -1,4 +1,4 @@
-'use client';
+'use client'
 
 import { useState } from 'react';
 import {
@@ -23,6 +23,7 @@ import {
 import { Pencil, Trash2 } from 'lucide-react';
 import { Supplier } from '@/types';
 import { useDeleteSupplier } from '@/hooks/use-suppliers';
+import { EntityThumbnail } from '@/components/shared/entity-thumbnail';
 
 interface Props {
   suppliers: Supplier[];
@@ -54,6 +55,7 @@ export function SuppliersTable({ suppliers, onEdit }: Props) {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-16">Foto</TableHead>
               <TableHead>Nome</TableHead>
               <TableHead>Contato</TableHead>
               <TableHead>E-mail</TableHead>
@@ -64,6 +66,9 @@ export function SuppliersTable({ suppliers, onEdit }: Props) {
           <TableBody>
             {suppliers.map((supplier) => (
               <TableRow key={supplier.id}>
+                <TableCell>
+                  <EntityThumbnail ownerType="suppliers" ownerId={supplier.id} />
+                </TableCell>
                 <TableCell className="font-medium">{supplier.name}</TableCell>
                 <TableCell>{supplier.contact || '—'}</TableCell>
                 <TableCell>{supplier.email || '—'}</TableCell>

@@ -141,3 +141,130 @@ export interface ApiResponse<T> {
   data: T;
   message?: string;
 }
+
+export interface ProductOverheadItem {
+  id: string;
+  productId: string;
+  name: string;
+  value: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Product {
+  id: string;
+  name: string;
+  description?: string | null;
+  marginPercent: number;
+  overheadPercent: number;
+  materials: ProductMaterial[];
+  labors: ProductLabor[];
+  overheadItems: ProductOverheadItem[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ImageOwnerType = 'raw-materials' | 'suppliers' | 'products' | 'kits';
+
+export interface EntityImage {
+  id: string;
+  ownerType: string;
+  ownerId: string;
+  url: string;
+  filename: string;
+  createdAt: string;
+}
+
+export interface LowValueFeeTier {
+  maxValue: number;
+  fee: number;
+}
+
+export interface Marketplace {
+  id: string;
+  name: string;
+  slug: string;
+  commissionPercent: number;
+  commissionCapValue: number | null;
+  fixedFeeValue: number | null;
+  lowValueFeeTiers: LowValueFeeTier[] | null;
+  isActive: boolean;
+  updatedAt: string;
+  createdAt: string;
+}
+
+export interface MarketplaceCalculationResult {
+  marketplaceId: string;
+  marketplaceName: string;
+  productCost: number;
+  desiredMarginPercent: number;
+  suggestedPrice: number;
+  commissionPercent: number;
+  commissionValue: number;
+  fixedFeeValue: number;
+  totalFees: number;
+  netReceivedByYou: number;
+  effectiveMarginPercent: number;
+  effectiveMarginValue: number;
+}
+
+export interface KitItem {
+  id: string;
+  kitId: string;
+  productId: string;
+  product: Product;
+  quantity: number;
+  createdAt: string;
+}
+
+export interface Kit {
+  id: string;
+  name: string;
+  description?: string | null;
+  marginPercent: number;
+  overheadPercent: number;
+  items: KitItem[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface KitItemPricing {
+  productId: string;
+  productName: string;
+  quantity: number;
+  unitCost: number;
+  totalCost: number;
+}
+
+export interface KitPricingResult {
+  kitId: string;
+  kitName: string;
+  items: KitItemPricing[];
+  itemsSubtotal: number;
+  overheadCost: number;
+  subtotalCost: number;
+  marginValue: number;
+  finalPrice: number;
+  overheadPercent: number;
+  marginPercent: number;
+}
+
+export interface StockMovement {
+  id: string;
+  rawMaterialId: string;
+  type: 'CONSUMPTION' | 'RESTOCK' | 'MANUAL_ADJUSTMENT';
+  quantity: number;
+  note?: string | null;
+  productionRecordId?: string | null;
+  createdAt: string;
+}
+
+export interface ProductionRecord {
+  id: string;
+  productId: string;
+  quantityProduced: number;
+  unitCost: number;
+  totalCost: number;
+  stockMovements: (StockMovement & { rawMaterial: RawMaterial })[];
+  createdAt: string;
+}

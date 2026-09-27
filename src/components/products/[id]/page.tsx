@@ -1,11 +1,12 @@
-'use client';
+"use client";
 
-import { useParams, useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Save, Trash2 } from 'lucide-react';
+import { useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ArrowLeft, Pencil, Save, Trash2 } from "lucide-react";
 import {
   useProduct,
   useProductCost,
@@ -15,23 +16,34 @@ import {
   useRemoveLaborFromProduct,
   useAddMaterialToProduct,
   useAddLaborToProduct,
-} from '@/hooks/use-products';
-import { CostBreakdown } from '@/components/products/cost-breakdown';
+} from "@/hooks/use-products";
+import { CostBreakdown } from "@/components/products/cost-breakdown";
 import {
   ProductMaterialPicker,
   DraftMaterialItem,
-} from '@/components/products/product-material-picker';
-import { ProductLaborPicker, DraftLaborItem } from '@/components/products/product-labor-picker';
-import { formatCurrency, formatDate } from '@/lib/format';
-import { UNIT_LABELS } from '@/types';
+} from "@/components/products/product-material-picker";
+import {
+  ProductLaborPicker,
+  DraftLaborItem,
+} from "@/components/products/product-labor-picker";
+import { ProductEditDialog } from "@/components/products/product-edit-dialog";
+import { formatCurrency, formatDate } from "@/lib/format";
+import { UNIT_LABELS } from "@/types";
+import { ImageUploader } from "@/components/shared/image-uploader";
+import { FieldHint } from "@/components/ui/field-hint";
+import { useProductionHistory } from "@/hooks/use-production";
+import { ProductionForm } from "@/components/products/production-form";
+import { ProductionHistory } from "@/components/products/production-history";
 
 export default function ProductDetailPage() {
+  const { data: productionRecords } = useProductionHistory(productId);
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const productId = params.id;
 
   const { data: product, isLoading: loadingProduct } = useProduct(productId);
-  const { data: pricing, isLoading: loadingPricing } = useProductCost(productId);
+  const { data: pricing, isLoading: loadingPricing } =
+    useProductCost(productId);
   const { data: history } = useProductHistory(productId);
 
   const saveSnapshotMutation = useSaveCostSnapshot(productId);
@@ -39,6 +51,8 @@ export default function ProductDetailPage() {
   const removeLaborMutation = useRemoveLaborFromProduct(productId);
   const addMaterialMutation = useAddMaterialToProduct(productId);
   const addLaborMutation = useAddLaborToProduct(productId);
+
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   const handleAddMaterial = (item: DraftMaterialItem) => {
     addMaterialMutation.mutate({
@@ -67,17 +81,23 @@ export default function ProductDetailPage() {
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <div className="flex items-center justify-between">
-        <Button variant="ghost" onClick={() => router.push('/products')}>
+        <Button variant="ghost" onClick={() => router.push("/products")}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Voltar
         </Button>
-        <Button
-          onClick={() => saveSnapshotMutation.mutate()}
-          disabled={saveSnapshotMutation.isPending}
-        >
-          <Save className="mr-2 h-4 w-4" />
-          Salvar precificação no histórico
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setEditDialogOpen(true)}>
+            <Pencil className="mr-2 h-4 w-4" />
+            Editar produto
+          </Button>
+          <Button
+            onClick={() => saveSnapshotMutation.mutate()}
+            disabled={saveSnapshotMutation.isPending}
+          >
+            <Save className="mr-2 h-4 w-4" />
+            Salvar precificação no histórico
+          </Button>
+        </div>
       </div>
 
       <div>
@@ -87,10 +107,32 @@ export default function ProductDetailPage() {
         )}
       </div>
 
+      <Card className="border-2 border-emerald-600 bg-emerald-50">
+        <CardContent className="flex items-center justify-between p-5">
+          <div>
+            <p className="text-sm text-emerald-700">Preço final sugerido</p>
+            {loadingPricing || !pricing ? (
+              <Skeleton className="mt-1 h-8 w-32" />
+            ) : (
+              <p className="text-3xl font-bold text-emerald-800">
+                {formatCurrency(pricing.finalPrice)}
+              </p>
+            )}
+          </div>
+          {pricing && (
+            <div className="text-right text-sm text-emerald-700">
+              <p>Custo total: {formatCurrency(pricing.subtotalCost)}</p>
+              <p>Margem: {pricing.breakdown.marginPercent}%</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       <Tabs defaultValue="cost">
         <TabsList>
           <TabsTrigger value="cost">Custo atual</TabsTrigger>
           <TabsTrigger value="composition">Composição</TabsTrigger>
+          <TabsTrigger value="production">Produção</TabsTrigger>
           <TabsTrigger value="history">Histórico</TabsTrigger>
         </TabsList>
 
@@ -116,8 +158,11 @@ export default function ProductDetailPage() {
                     className="flex items-center justify-between rounded-md border p-3 text-sm"
                   >
                     <div>
-                      <span className="font-medium">{item.rawMaterial.name}</span> —{' '}
-                      {item.quantityUsed} {UNIT_LABELS[item.rawMaterial.usageUnit].toLowerCase()}{' '}
+                      <span className="font-medium">
+                        {item.rawMaterial.name}
+                      </span>{" "}
+                      — {item.quantityUsed}{" "}
+                      {UNIT_LABELS[item.rawMaterial.usageUnit].toLowerCase()}{" "}
                       (desperdício: {item.wastePercent}%)
                     </div>
                     <Button
@@ -146,8 +191,9 @@ export default function ProductDetailPage() {
                     className="flex items-center justify-between rounded-md border p-3 text-sm"
                   >
                     <div>
-                      <span className="font-medium">{item.laborRate.name}</span> —{' '}
-                      {item.hoursSpent}h x {formatCurrency(item.laborRate.hourlyRate)}/h
+                      <span className="font-medium">{item.laborRate.name}</span>{" "}
+                      — {item.hoursSpent}h x{" "}
+                      {formatCurrency(item.laborRate.hourlyRate)}/h
                     </div>
                     <Button
                       variant="ghost"
@@ -161,6 +207,47 @@ export default function ProductDetailPage() {
               </div>
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Custos indiretos</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {product.overheadItems.length === 0 ? (
+                <p className="text-sm text-slate-500">
+                  Nenhum custo indireto cadastrado. Clique em &quot;Editar
+                  produto&quot; para adicionar.
+                </p>
+              ) : (
+                product.overheadItems.map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex items-center justify-between rounded-md border p-3 text-sm"
+                  >
+                    <span className="font-medium">{item.name}</span>
+                    <span>{formatCurrency(item.value)}</span>
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Imagens do produto</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <FieldHint className="mb-3">
+                Anexe fotos do produto finalizado, útil para catálogo ou
+                referência visual.
+              </FieldHint>
+              <ImageUploader ownerType="products" ownerId={product.id} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="production" className="mt-4 space-y-4">
+          <ProductionForm productId={productId} />
+          <ProductionHistory records={productionRecords ?? []} />
         </TabsContent>
 
         <TabsContent value="history" className="mt-4">
@@ -192,6 +279,12 @@ export default function ProductDetailPage() {
           )}
         </TabsContent>
       </Tabs>
+
+      <ProductEditDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        product={product}
+      />
     </div>
   );
 }

@@ -1,4 +1,4 @@
-'use client';
+'use client'
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -9,6 +9,9 @@ import {
   TreePine,
   Users,
   Package,
+  Calculator,
+  Settings,
+  Package2
 } from 'lucide-react';
 
 const navItems = [
@@ -17,6 +20,9 @@ const navItems = [
   { href: '/raw-materials', label: 'Matérias-primas', icon: TreePine },
   { href: '/labor-rates', label: 'Mão de obra', icon: Users },
   { href: '/products', label: 'Produtos', icon: Package },
+  { href: '/kits', label: 'Kits de Produtos', icon: Package2 },
+  { href: '/marketplace-calculator', label: 'Calculadora de Marketplace', icon: Calculator },
+  { href: '/marketplace-settings', label: 'Taxas de Marketplace', icon: Settings },
 ];
 
 export function Sidebar() {

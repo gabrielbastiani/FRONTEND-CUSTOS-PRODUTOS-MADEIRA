@@ -53,13 +53,25 @@ export function useProductHistory(id: string) {
   });
 }
 
+interface OverheadItemPayload {
+  name: string;
+  value: number;
+}
+
 interface CreateProductPayload {
   name: string;
   description?: string;
   marginPercent?: number;
-  overheadPercent?: number;
+  overheadItems?: OverheadItemPayload[];
   materials?: { rawMaterialId: string; quantityUsed: number; wastePercent?: number }[];
   labors?: { laborRateId: string; hoursSpent: number }[];
+}
+
+interface UpdateProductDetailsPayload {
+  name?: string;
+  description?: string;
+  marginPercent?: number;
+  overheadItems?: OverheadItemPayload[];
 }
 
 export function useCreateProduct() {
@@ -183,6 +195,26 @@ export function useSaveCostSnapshot(productId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [...QUERY_KEY, productId, 'history'] });
       toast.success('Precificação salva no histórico.');
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+}
+
+export function useUpdateProductDetails(productId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: UpdateProductDetailsPayload) => {
+      const { data } = await apiClient.put<ApiResponse<Product>>(
+        `/products/${productId}`,
+        payload
+      );
+      return data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [...QUERY_KEY, productId] });
+      queryClient.invalidateQueries({ queryKey: [...QUERY_KEY, productId, 'calculate'] });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEY });
+      toast.success('Produto atualizado com sucesso.');
     },
     onError: (error: Error) => toast.error(error.message),
   });

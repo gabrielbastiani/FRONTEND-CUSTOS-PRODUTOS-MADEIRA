@@ -7,6 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useRawMaterials } from '@/hooks/use-raw-materials';
 import { RawMaterialsTable } from '@/components/raw-materials/raw-materials-table';
 import { RawMaterialFormDialog } from '@/components/raw-materials/raw-material-form-dialog';
+import { LowStockAlert } from '@/components/raw-materials/low-stock-alert';
 import { RawMaterial } from '@/types';
 
 export default function RawMaterialsPage() {
@@ -28,7 +29,7 @@ export default function RawMaterialsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <p className="text-sm text-slate-500">
-          Cadastre tábuas, parafusos, cola, verniz e demais insumos com suas unidades de
+          Cadastre táboas, parafusos, cola, verniz e demais insumos com suas unidades de
           compra e uso.
         </p>
         <Button onClick={handleNew}>
@@ -36,6 +37,8 @@ export default function RawMaterialsPage() {
           Nova matéria-prima
         </Button>
       </div>
+
+      <LowStockAlert />
 
       {isLoading ? (
         <div className="space-y-2">

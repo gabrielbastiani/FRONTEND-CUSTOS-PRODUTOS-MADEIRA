@@ -1,4 +1,4 @@
-'use client';
+'use client'
 
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
@@ -14,6 +14,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { FieldHint } from '@/components/ui/field-hint';
+import { SectionIntro } from '@/components/ui/section-intro';
+import { ImageUploader } from '@/components/shared/image-uploader';
 import { Supplier } from '@/types';
 import { useCreateSupplier, useUpdateSupplier } from '@/hooks/use-suppliers';
 
@@ -78,29 +81,68 @@ export function SupplierFormDialog({ open, onOpenChange, supplier }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Editar fornecedor' : 'Novo fornecedor'}</DialogTitle>
         </DialogHeader>
+
+        <SectionIntro>
+          Fornecedores são as empresas ou pessoas de quem você compra suas
+          matérias-primas. Cadastrá-los permite vincular cada material comprado à sua
+          origem, facilitando comparar preços entre fornecedores diferentes e saber
+          rapidamente onde recomprar quando o estoque acabar.
+        </SectionIntro>
+
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="name">Nome *</Label>
             <Input id="name" {...register('name')} placeholder="Ex: Madeireira Central" />
+            <FieldHint>
+              Nome da empresa ou pessoa fornecedora, como aparece na nota fiscal ou como
+              você reconhece facilmente.
+            </FieldHint>
             {errors.name && <p className="text-sm text-red-600">{errors.name.message}</p>}
           </div>
           <div className="space-y-2">
             <Label htmlFor="contact">Contato</Label>
             <Input id="contact" {...register('contact')} placeholder="Nome do responsável" />
+            <FieldHint>
+              Nome de uma pessoa de contato dentro do fornecedor, opcional, útil quando
+              você negocia sempre com a mesma pessoa.
+            </FieldHint>
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">E-mail</Label>
-            <Input id="email" type="email" {...register('email')} placeholder="contato@fornecedor.com" />
+            <Input
+              id="email"
+              type="email"
+              {...register('email')}
+              placeholder="contato@fornecedor.com"
+            />
+            <FieldHint>
+              Opcional. Serve apenas como registro de contato, o sistema não envia
+              e-mails automáticos para o fornecedor.
+            </FieldHint>
             {errors.email && <p className="text-sm text-red-600">{errors.email.message}</p>}
           </div>
           <div className="space-y-2">
             <Label htmlFor="phone">Telefone</Label>
             <Input id="phone" {...register('phone')} placeholder="(11) 99999-9999" />
+            <FieldHint>
+              Opcional. Facilita entrar em contato rapidamente na hora de fazer um novo
+              pedido de compra.
+            </FieldHint>
           </div>
+
+          <div className="space-y-2">
+            <Label>Imagens</Label>
+            <FieldHint>
+              Adicione fotos de referência, opcional. Útil para identificar visualmente
+              o fornecedor, como fachada, logotipo ou documentos relevantes.
+            </FieldHint>
+            <ImageUploader ownerType="suppliers" ownerId={supplier?.id} />
+          </div>
+
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar

@@ -24,6 +24,8 @@ import {
 import { Eye, Trash2 } from 'lucide-react';
 import { Product } from '@/types';
 import { useDeleteProduct } from '@/hooks/use-products';
+import { ProductPriceCell } from './product-price-cell';
+import { EntityThumbnail } from '@/components/shared/entity-thumbnail';
 
 interface Props {
   products: Product[];
@@ -54,20 +56,28 @@ export function ProductsTable({ products }: Props) {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-16">Foto</TableHead>
               <TableHead>Nome</TableHead>
               <TableHead>Itens de material</TableHead>
               <TableHead>Itens de mão de obra</TableHead>
               <TableHead>Margem</TableHead>
+              <TableHead>Preço final</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {products.map((product) => (
               <TableRow key={product.id}>
+                <TableCell>
+                  <EntityThumbnail ownerType="products" ownerId={product.id} />
+                </TableCell>
                 <TableCell className="font-medium">{product.name}</TableCell>
                 <TableCell>{product.materials?.length ?? 0}</TableCell>
                 <TableCell>{product.labors?.length ?? 0}</TableCell>
                 <TableCell>{product.marginPercent}%</TableCell>
+                <TableCell>
+                  <ProductPriceCell productId={product.id} />
+                </TableCell>
                 <TableCell className="text-right">
                   <Link href={`/products/${product.id}`}>
                     <Button variant="ghost" size="icon">

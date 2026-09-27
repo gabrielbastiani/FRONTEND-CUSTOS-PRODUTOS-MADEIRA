@@ -1,18 +1,19 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { useLaborRates } from '@/hooks/use-labor-rates';
-import { Plus } from 'lucide-react';
+} from "@/components/ui/select";
+import { useLaborRates } from "@/hooks/use-labor-rates";
+import { Plus } from "lucide-react";
+import { formatCurrency } from "@/lib/format";
 
 export interface DraftLaborItem {
   laborRateId: string;
@@ -26,32 +27,40 @@ interface Props {
 }
 
 export function ProductLaborPicker({ onAdd }: Props) {
-  const { data: laborRates } = useLaborRates();
-  const [selectedId, setSelectedId] = useState('');
-  const [hours, setHours] = useState('');
+  const { data: laborRates, isLoading } = useLaborRates();
+  const [selectedId, setSelectedId] = useState<string | undefined>(undefined);
+  const [hours, setHours] = useState("");
+
+  const selectedRate = laborRates?.find((r) => r.id === selectedId);
 
   const handleAdd = () => {
-    const rate = laborRates?.find((r) => r.id === selectedId);
-    if (!rate || !hours) return;
+    if (!selectedRate || !hours) return;
 
     onAdd({
-      laborRateId: rate.id,
-      name: rate.name,
-      hourlyRate: rate.hourlyRate,
+      laborRateId: selectedRate.id,
+      name: selectedRate.name,
+      hourlyRate: selectedRate.hourlyRate,
       hoursSpent: Number(hours),
     });
 
-    setSelectedId('');
-    setHours('');
+    setSelectedId(undefined);
+    setHours("");
   };
 
   return (
     <div className="grid grid-cols-12 gap-2 items-end rounded-md border bg-slate-50 p-3">
       <div className="col-span-6 space-y-1">
         <Label className="text-xs">Tipo de mão de obra</Label>
-        <Select value={selectedId} onValueChange={setSelectedId}>
+        <Select
+          key={selectedId ?? "empty"}
+          value={selectedId}
+          onValueChange={setSelectedId}
+          disabled={isLoading || !laborRates?.length}
+        >
           <SelectTrigger>
-            <SelectValue placeholder="Selecione" />
+            <SelectValue placeholder={isLoading ? "Carregando..." : "Selecione o tipo de mão de obra"}>
+  {() => selectedRate?.name ?? ""}
+</SelectValue>
           </SelectTrigger>
           <SelectContent>
             {laborRates?.map((rate) => (
@@ -61,6 +70,11 @@ export function ProductLaborPicker({ onAdd }: Props) {
             ))}
           </SelectContent>
         </Select>
+        {selectedRate && (
+          <p className="text-[11px] text-slate-500">
+            {formatCurrency(selectedRate.hourlyRate)} por hora
+          </p>
+        )}
       </div>
       <div className="col-span-4 space-y-1">
         <Label className="text-xs">Horas gastas</Label>
@@ -73,7 +87,12 @@ export function ProductLaborPicker({ onAdd }: Props) {
         />
       </div>
       <div className="col-span-2">
-        <Button type="button" onClick={handleAdd} disabled={!selectedId || !hours} className="w-full">
+        <Button
+          type="button"
+          onClick={handleAdd}
+          disabled={!selectedId || !hours}
+          className="w-full"
+        >
           <Plus className="h-4 w-4" />
         </Button>
       </div>

@@ -16,6 +16,7 @@ import { formatCurrency } from "@/lib/format";
 import {
   useRemoveMaterialSupplier,
   useSetDefaultMaterialSupplier,
+  useRawMaterial
 } from "@/hooks/use-raw-materials";
 import { AddSupplierDialog } from "./add-supplier-dialog";
 import { EditSupplierDialog } from "./edit-supplier-dialog";
@@ -37,11 +38,18 @@ interface Props {
   rawMaterial: RawMaterial | null;
 }
 
-export function ManageSuppliersDialog({ open, onOpenChange, rawMaterial }: Props) {
+export function ManageSuppliersDialog({ open, onOpenChange, rawMaterial: initialRawMaterial }: Props) {
   const [addOpen, setAddOpen] = useState(false);
   const [editEntry, setEditEntry] = useState<MaterialSupplier | null>(null);
   const [historyEntry, setHistoryEntry] = useState<MaterialSupplier | null>(null);
   const [removeEntry, setRemoveEntry] = useState<MaterialSupplier | null>(null);
+
+  const { data: freshRawMaterial } = useRawMaterial(
+    initialRawMaterial?.id ?? "",
+    open && !!initialRawMaterial
+  );
+
+  const rawMaterial = freshRawMaterial ?? initialRawMaterial;
 
   const removeMutation = useRemoveMaterialSupplier();
   const setDefaultMutation = useSetDefaultMaterialSupplier();

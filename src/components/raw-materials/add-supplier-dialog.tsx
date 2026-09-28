@@ -104,17 +104,19 @@ export function AddSupplierDialog({ open, onOpenChange, materialId }: Props) {
                 control={control}
                 render={({ field }) => (
                   <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione um fornecedor" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {suppliers?.map((s) => (
-                        <SelectItem key={s.id} value={s.id}>
-                          {s.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+  <SelectTrigger>
+    <SelectValue placeholder="Selecione um fornecedor">
+      {suppliers?.find((s) => s.id === field.value)?.name}
+    </SelectValue>
+  </SelectTrigger>
+  <SelectContent>
+    {suppliers?.map((s) => (
+      <SelectItem key={s.id} value={s.id}>
+        {s.name}
+      </SelectItem>
+    ))}
+  </SelectContent>
+</Select>
                 )}
               />
             )}

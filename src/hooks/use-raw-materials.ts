@@ -119,12 +119,20 @@ export function useRestockRawMaterial() {
   return useMutation({
     mutationFn: async ({
       id,
-      payload,
+      quantity,
+      note,
+      supplierId,
     }: {
       id: string;
-      payload: RestockPayload;
+      quantity: number;
+      note?: string;
+      supplierId?: string;
     }) => {
-      const { data } = await apiClient.post(`/raw-materials/${id}/restock`, payload);
+      const { data } = await apiClient.post(`/raw-materials/${id}/restock`, {
+        quantity,
+        note,
+        supplierId,
+      });
       return data.data as RawMaterial;
     },
     onSuccess: () => {
@@ -138,15 +146,17 @@ export function useAdjustRawMaterialStock() {
   return useMutation({
     mutationFn: async ({
       id,
-      payload,
+      quantity,
+      note,
     }: {
       id: string;
-      payload: AdjustStockPayload;
+      quantity: number;
+      note: string;
     }) => {
-      const { data } = await apiClient.post(
-        `/raw-materials/${id}/adjust-stock`,
-        payload
-      );
+      const { data } = await apiClient.post(`/raw-materials/${id}/adjust-stock`, {
+        quantity,
+        note,
+      });
       return data.data as RawMaterial;
     },
     onSuccess: () => {

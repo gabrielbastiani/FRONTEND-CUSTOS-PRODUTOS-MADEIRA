@@ -21,6 +21,7 @@ const navItems = [
   { href: '/labor-rates', label: 'Mão de obra', icon: Users },
   { href: '/products', label: 'Produtos', icon: Package },
   { href: '/kits', label: 'Kits de Produtos', icon: Package2 },
+   { href: '/simulador', label: 'Simulador', icon: Package2 },
   { href: '/marketplace-calculator', label: 'Calculadora de Marketplace', icon: Calculator },
   { href: '/marketplace-settings', label: 'Taxas de Marketplace', icon: Settings },
 ];

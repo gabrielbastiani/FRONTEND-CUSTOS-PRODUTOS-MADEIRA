@@ -26,16 +26,17 @@ import { useDeleteRawMaterial } from "@/hooks/use-raw-materials";
 import { formatCurrency } from "@/lib/format";
 import { EntityThumbnail } from "@/components/shared/entity-thumbnail";
 import { RawMaterialRestockDialog } from "@/components/raw-materials/raw-material-restock-dialog";
-import { Pencil, Trash2, PackagePlus, Settings2, History } from "lucide-react";
+import { Pencil, Trash2, PackagePlus, Settings2, History, Truck } from "lucide-react";
 import { RawMaterialAdjustStockDialog } from "@/components/raw-materials/raw-material-adjust-stock-dialog";
 import { RawMaterialHistoryDialog } from "@/components/raw-materials/raw-material-history-dialog";
 
 interface Props {
   materials: RawMaterial[];
   onEdit: (material: RawMaterial) => void;
+  onManageSuppliers: (material: RawMaterial) => void;
 }
 
-export function RawMaterialsTable({ materials, onEdit }: Props) {
+export function RawMaterialsTable({ materials, onEdit, onManageSuppliers }: Props) {
   const [adjustingMaterial, setAdjustingMaterial] =
     useState<RawMaterial | null>(null);
   const [viewingHistoryMaterial, setViewingHistoryMaterial] =
@@ -68,7 +69,7 @@ export function RawMaterialsTable({ materials, onEdit }: Props) {
             <TableRow>
               <TableHead className="w-16">Foto</TableHead>
               <TableHead>Nome</TableHead>
-              <TableHead>Fornecedor</TableHead>
+              <TableHead>Fornecedor padrão</TableHead>
               <TableHead>Compra</TableHead>
               <TableHead>Uso</TableHead>
               <TableHead>Estoque</TableHead>
@@ -77,91 +78,120 @@ export function RawMaterialsTable({ materials, onEdit }: Props) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {materials.map((material) => (
-              <TableRow key={material.id}>
-                <TableCell>
-                  <EntityThumbnail
-                    ownerType="raw-materials"
-                    ownerId={material.id}
-                  />
-                </TableCell>
-                <TableCell className="font-medium">{material.name}</TableCell>
-                <TableCell>{material.supplier?.name || "—"}</TableCell>
-                <TableCell>
-                  {material.purchaseQty} {UNIT_LABELS[material.purchaseUnit]}{" "}
-                  por {formatCurrency(material.purchasePrice)}
-                </TableCell>
-                <TableCell>
-                  <Badge variant="secondary">
-                    {UNIT_LABELS[material.usageUnit]}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <span
-                    className={
-                      material.minStockAlert != null &&
-                      material.stockQty <= material.minStockAlert
-                        ? "font-medium text-red-600"
-                        : ""
-                    }
-                  >
-                    {material.stockQty}{" "}
-                    {UNIT_LABELS[material.usageUnit].toLowerCase()}
-                  </span>
-                  {material.minStockAlert != null &&
-                    material.stockQty <= material.minStockAlert && (
-                      <p className="text-xs text-red-500">Estoque baixo</p>
+            {materials.map((material) => {
+              const defaultSupplier = material.defaultSupplier;
+
+              return (
+                <TableRow key={material.id}>
+                  <TableCell>
+                    <EntityThumbnail
+                      ownerType="raw-materials"
+                      ownerId={material.id}
+                    />
+                  </TableCell>
+                  <TableCell className="font-medium">{material.name}</TableCell>
+                  <TableCell>
+                    {defaultSupplier ? (
+                      defaultSupplier.supplier.name
+                    ) : (
+                      <span className="text-amber-600">
+                        Nenhum fornecedor definido
+                      </span>
                     )}
-                </TableCell>
-                <TableCell>
-                  {material.unitCost !== undefined
-                    ? `${formatCurrency(material.unitCost)} / ${UNIT_LABELS[
-                        material.usageUnit
-                      ].toLowerCase()}`
-                    : "—"}
-                </TableCell>
-                <TableCell className="text-right">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setRestockingMaterial(material)}
-                    title="Repor estoque"
-                  >
-                    <PackagePlus className="h-4 w-4 text-emerald-600" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setAdjustingMaterial(material)}
-                    title="Ajustar estoque"
-                  >
-                    <Settings2 className="h-4 w-4 text-amber-600" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setViewingHistoryMaterial(material)}
-                    title="Ver histórico de estoque"
-                  >
-                    <History className="h-4 w-4 text-slate-600" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => onEdit(material)}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setDeletingId(material.id)}
-                  >
-                    <Trash2 className="h-4 w-4 text-red-600" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
+                  </TableCell>
+                  <TableCell>
+                    {defaultSupplier ? (
+                      <>
+                        {defaultSupplier.purchaseQty}{" "}
+                        {UNIT_LABELS[defaultSupplier.purchaseUnit]} por{" "}
+                        {formatCurrency(defaultSupplier.purchasePrice)}
+                      </>
+                    ) : (
+                      "—"
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="secondary">
+                      {UNIT_LABELS[material.usageUnit]}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <span
+                      className={
+                        material.minStockAlert != null &&
+                        material.stockQty <= material.minStockAlert
+                          ? "font-medium text-red-600"
+                          : ""
+                      }
+                    >
+                      {material.stockQty}{" "}
+                      {UNIT_LABELS[material.usageUnit].toLowerCase()}
+                    </span>
+                    {material.minStockAlert != null &&
+                      material.stockQty <= material.minStockAlert && (
+                        <p className="text-xs text-red-500">Estoque baixo</p>
+                      )}
+                  </TableCell>
+                  <TableCell>
+                    {material.unitCost !== undefined && material.unitCost > 0
+                      ? `${formatCurrency(material.unitCost)} / ${UNIT_LABELS[
+                          material.usageUnit
+                        ].toLowerCase()}`
+                      : "—"}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => onManageSuppliers(material)}
+                      title="Gerenciar fornecedores"
+                    >
+                      <Truck className="h-4 w-4 text-indigo-600" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setRestockingMaterial(material)}
+                      title="Repor estoque"
+                    >
+                      <PackagePlus className="h-4 w-4 text-emerald-600" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setAdjustingMaterial(material)}
+                      title="Ajustar estoque"
+                    >
+                      <Settings2 className="h-4 w-4 text-amber-600" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setViewingHistoryMaterial(material)}
+                      title="Ver histórico de estoque"
+                    >
+                      <History className="h-4 w-4 text-slate-600" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => onEdit(material)}
+                      title="Editar dados gerais"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setDeletingId(material.id)}
+                      title="Remover matéria-prima"
+                    >
+                      <Trash2 className="h-4 w-4 text-red-600" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </div>

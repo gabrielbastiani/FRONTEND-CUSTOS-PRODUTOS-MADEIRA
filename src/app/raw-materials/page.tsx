@@ -7,13 +7,16 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useRawMaterials } from '@/hooks/use-raw-materials';
 import { RawMaterialsTable } from '@/components/raw-materials/raw-materials-table';
 import { RawMaterialFormDialog } from '@/components/raw-materials/raw-material-form-dialog';
+import { ManageSuppliersDialog } from '@/components/raw-materials/manage-suppliers-dialog';
 import { LowStockAlert } from '@/components/raw-materials/low-stock-alert';
 import { RawMaterial } from '@/types';
 
 export default function RawMaterialsPage() {
   const { data: materials, isLoading } = useRawMaterials();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [suppliersDialogOpen, setSuppliersDialogOpen] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState<RawMaterial | null>(null);
+  const [suppliersMaterial, setSuppliersMaterial] = useState<RawMaterial | null>(null);
 
   const handleNew = () => {
     setEditingMaterial(null);
@@ -23,6 +26,11 @@ export default function RawMaterialsPage() {
   const handleEdit = (material: RawMaterial) => {
     setEditingMaterial(material);
     setDialogOpen(true);
+  };
+
+  const handleManageSuppliers = (material: RawMaterial) => {
+    setSuppliersMaterial(material);
+    setSuppliersDialogOpen(true);
   };
 
   return (
@@ -47,13 +55,23 @@ export default function RawMaterialsPage() {
           <Skeleton className="h-12 w-full" />
         </div>
       ) : (
-        <RawMaterialsTable materials={materials ?? []} onEdit={handleEdit} />
+        <RawMaterialsTable
+          materials={materials ?? []}
+          onEdit={handleEdit}
+          onManageSuppliers={handleManageSuppliers}
+        />
       )}
 
       <RawMaterialFormDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         rawMaterial={editingMaterial}
+      />
+
+      <ManageSuppliersDialog
+        open={suppliersDialogOpen}
+        onOpenChange={setSuppliersDialogOpen}
+        rawMaterial={suppliersMaterial}
       />
     </div>
   );

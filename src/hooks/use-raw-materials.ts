@@ -1,17 +1,58 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api-client';
-import { ApiResponse, RawMaterial } from '@/types';
-import { toast } from 'sonner';
-import { ApiResponse, RawMaterial, StockMovement } from '@/types';
+import { RawMaterial, MaterialSupplier } from '@/types';
 
-const QUERY_KEY = ['raw-materials'];
+// --- Hooks de Matéria-Prima (dados gerais) ---
+
+interface CreateRawMaterialPayload {
+  name: string;
+  description?: string;
+  usageUnit: string;
+  conversionFactor: number;
+  stockQty?: number;
+  minStockAlert?: number;
+  supplierId?: string;
+  purchaseUnit?: string;
+  purchaseQty?: number;
+  purchasePrice?: number;
+}
+
+interface UpdateRawMaterialPayload {
+  name?: string;
+  description?: string;
+  usageUnit?: string;
+  conversionFactor?: number;
+  stockQty?: number;
+  minStockAlert?: number;
+}
 
 export function useRawMaterials() {
   return useQuery({
-    queryKey: QUERY_KEY,
+    queryKey: ['raw-materials'],
     queryFn: async () => {
-      const { data } = await apiClient.get<ApiResponse<RawMaterial[]>>('/raw-materials');
-      return data.data;
+      const { data } = await apiClient.get('/raw-materials');
+      return data.data as RawMaterial[];
+    },
+  });
+}
+
+export function useRawMaterial(id: string, enabled = true) {
+  return useQuery({
+    queryKey: ['raw-materials', id],
+    queryFn: async () => {
+      const { data } = await apiClient.get(`/raw-materials/${id}`);
+      return data.data as RawMaterial;
+    },
+    enabled: enabled && !!id,
+  });
+}
+
+export function useLowStockMaterials() {
+  return useQuery({
+    queryKey: ['raw-materials', 'low-stock'],
+    queryFn: async () => {
+      const { data } = await apiClient.get('/raw-materials/low-stock');
+      return data.data as RawMaterial[];
     },
   });
 }
@@ -19,30 +60,32 @@ export function useRawMaterials() {
 export function useCreateRawMaterial() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (payload: Partial<RawMaterial>) => {
-      const { data } = await apiClient.post<ApiResponse<RawMaterial>>('/raw-materials', payload);
-      return data.data;
+    mutationFn: async (payload: CreateRawMaterialPayload) => {
+      const { data } = await apiClient.post('/raw-materials', payload);
+      return data.data as RawMaterial;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEY });
-      toast.success('Matéria-prima criada com sucesso.');
+      queryClient.invalidateQueries({ queryKey: ['raw-materials'] });
     },
-    onError: (error: Error) => toast.error(error.message),
   });
 }
 
 export function useUpdateRawMaterial() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, payload }: { id: string; payload: Partial<RawMaterial> }) => {
-      const { data } = await apiClient.put<ApiResponse<RawMaterial>>(`/raw-materials/${id}`, payload);
-      return data.data;
+    mutationFn: async ({
+      id,
+      payload,
+    }: {
+      id: string;
+      payload: UpdateRawMaterialPayload;
+    }) => {
+      const { data } = await apiClient.put(`/raw-materials/${id}`, payload);
+      return data.data as RawMaterial;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEY });
-      toast.success('Matéria-prima atualizada com sucesso.');
+      queryClient.invalidateQueries({ queryKey: ['raw-materials'] });
     },
-    onError: (error: Error) => toast.error(error.message),
   });
 }
 
@@ -53,11 +96,22 @@ export function useDeleteRawMaterial() {
       await apiClient.delete(`/raw-materials/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEY });
-      toast.success('Matéria-prima removida com sucesso.');
+      queryClient.invalidateQueries({ queryKey: ['raw-materials'] });
     },
-    onError: (error: Error) => toast.error(error.message),
   });
+}
+
+// --- Hooks de Estoque ---
+
+interface RestockPayload {
+  quantity: number;
+  note?: string;
+  supplierId?: string;
+}
+
+interface AdjustStockPayload {
+  quantity: number;
+  note: string;
 }
 
 export function useRestockRawMaterial() {
@@ -65,24 +119,17 @@ export function useRestockRawMaterial() {
   return useMutation({
     mutationFn: async ({
       id,
-      quantity,
-      note,
+      payload,
     }: {
       id: string;
-      quantity: number;
-      note?: string;
+      payload: RestockPayload;
     }) => {
-      const { data } = await apiClient.post<ApiResponse<RawMaterial>>(
-        `/raw-materials/${id}/restock`,
-        { quantity, note }
-      );
-      return data.data;
+      const { data } = await apiClient.post(`/raw-materials/${id}/restock`, payload);
+      return data.data as RawMaterial;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEY });
-      toast.success('Estoque reposto com sucesso.');
+      queryClient.invalidateQueries({ queryKey: ['raw-materials'] });
     },
-    onError: (error: Error) => toast.error(error.message),
   });
 }
 
@@ -91,36 +138,175 @@ export function useAdjustRawMaterialStock() {
   return useMutation({
     mutationFn: async ({
       id,
-      quantity,
-      note,
+      payload,
     }: {
       id: string;
-      quantity: number;
-      note: string;
+      payload: AdjustStockPayload;
     }) => {
-      const { data } = await apiClient.post<ApiResponse<RawMaterial>>(
+      const { data } = await apiClient.post(
         `/raw-materials/${id}/adjust-stock`,
-        { quantity, note }
+        payload
       );
-      return data.data;
+      return data.data as RawMaterial;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEY });
-      toast.success('Estoque ajustado com sucesso.');
+      queryClient.invalidateQueries({ queryKey: ['raw-materials'] });
     },
-    onError: (error: Error) => toast.error(error.message),
   });
 }
 
-export function useRawMaterialStockMovements(id: string) {
+export function useRawMaterialStockMovements(rawMaterialId: string, enabled = true) {
   return useQuery({
-    queryKey: [...QUERY_KEY, id, 'stock-movements'],
+    queryKey: ['raw-materials', rawMaterialId, 'stock-movements'],
     queryFn: async () => {
-      const { data } = await apiClient.get<ApiResponse<StockMovement[]>>(
-        `/raw-materials/${id}/stock-movements`
+      const { data } = await apiClient.get(
+        `/raw-materials/${rawMaterialId}/stock-movements`
       );
       return data.data;
     },
-    enabled: !!id,
+    enabled: enabled && !!rawMaterialId,
+  });
+}
+
+// --- Hooks de Fornecedores da Matéria-Prima ---
+
+interface AddSupplierPayload {
+  supplierId: string;
+  purchaseUnit: string;
+  purchaseQty: number;
+  purchasePrice: number;
+  isDefault?: boolean;
+}
+
+interface UpdateSupplierPayload {
+  purchaseUnit?: string;
+  purchaseQty?: number;
+  purchasePrice?: number;
+}
+
+export function useAddMaterialSupplier() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      materialId,
+      payload,
+    }: {
+      materialId: string;
+      payload: AddSupplierPayload;
+    }) => {
+      const { data } = await apiClient.post(
+        `/raw-materials/${materialId}/suppliers`,
+        payload
+      );
+      return data.data as MaterialSupplier;
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['raw-materials'] });
+      queryClient.invalidateQueries({
+        queryKey: ['raw-materials', variables.materialId],
+      });
+    },
+  });
+}
+
+export function useUpdateMaterialSupplier() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      materialId,
+      supplierEntryId,
+      payload,
+    }: {
+      materialId: string;
+      supplierEntryId: string;
+      payload: UpdateSupplierPayload;
+    }) => {
+      const { data } = await apiClient.put(
+        `/raw-materials/${materialId}/suppliers/${supplierEntryId}`,
+        payload
+      );
+      return data.data as MaterialSupplier;
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['raw-materials'] });
+      queryClient.invalidateQueries({
+        queryKey: ['raw-materials', variables.materialId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [
+          'material-price-history',
+          variables.materialId,
+          variables.supplierEntryId,
+        ],
+      });
+    },
+  });
+}
+
+export function useRemoveMaterialSupplier() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      materialId,
+      supplierEntryId,
+    }: {
+      materialId: string;
+      supplierEntryId: string;
+    }) => {
+      await apiClient.delete(
+        `/raw-materials/${materialId}/suppliers/${supplierEntryId}`
+      );
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['raw-materials'] });
+      queryClient.invalidateQueries({
+        queryKey: ['raw-materials', variables.materialId],
+      });
+    },
+  });
+}
+
+export function useSetDefaultMaterialSupplier() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      materialId,
+      supplierEntryId,
+    }: {
+      materialId: string;
+      supplierEntryId: string;
+    }) => {
+      const { data } = await apiClient.patch(
+        `/raw-materials/${materialId}/suppliers/${supplierEntryId}/set-default`
+      );
+      return data.data as MaterialSupplier;
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['raw-materials'] });
+      queryClient.invalidateQueries({
+        queryKey: ['raw-materials', variables.materialId],
+      });
+    },
+  });
+}
+
+export function useMaterialPriceHistory(
+  materialId: string,
+  supplierEntryId: string,
+  enabled: boolean
+) {
+  return useQuery({
+    queryKey: ['material-price-history', materialId, supplierEntryId],
+    queryFn: async () => {
+      const { data } = await apiClient.get(
+        `/raw-materials/${materialId}/suppliers/${supplierEntryId}/price-history`
+      );
+      return data.data as {
+        materialSupplier: MaterialSupplier;
+        averagePrice: string;
+        priceAlert: string | null;
+      };
+    },
+    enabled,
   });
 }

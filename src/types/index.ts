@@ -32,25 +32,20 @@ export interface Supplier {
   createdAt: string;
   updatedAt: string;
 }
-
 export interface RawMaterial {
   id: string;
   name: string;
-  description?: string | null;
-  supplierId?: string | null;
-  supplier?: Supplier | null;
-  purchaseUnit: UnitOfMeasure;
-  purchaseQty: number;
-  purchasePrice: number;
+  description?: string;
   usageUnit: UnitOfMeasure;
   conversionFactor: number;
   stockQty: number;
-  minStockAlert?: number | null;
-  unitCost?: number;
+  minStockAlert?: number;
   createdAt: string;
   updatedAt: string;
+  suppliers?: MaterialSupplier[];
+  defaultSupplier?: MaterialSupplier | null;
+  unitCost?: number;
 }
-
 export interface LaborRate {
   id: string;
   name: string;
@@ -58,7 +53,6 @@ export interface LaborRate {
   createdAt: string;
   updatedAt: string;
 }
-
 export interface ProductMaterial {
   id: string;
   productId: string;
@@ -267,4 +261,27 @@ export interface ProductionRecord {
   totalCost: number;
   stockMovements: (StockMovement & { rawMaterial: RawMaterial })[];
   createdAt: string;
+}
+
+export interface PriceHistoryEntry {
+  id: string;
+  materialSupplierId: string;
+  purchaseUnit: UnitOfMeasure;
+  purchaseQty: number;
+  purchasePrice: number;
+  recordedAt: string;
+}
+
+export interface MaterialSupplier {
+  id: string;
+  rawMaterialId: string;
+  supplierId: string;
+  supplier: Supplier;
+  purchaseUnit: UnitOfMeasure;
+  purchaseQty: number;
+  purchasePrice: number;
+  isDefault: boolean;
+  createdAt: string;
+  updatedAt: string;
+  priceHistory?: PriceHistoryEntry[];
 }

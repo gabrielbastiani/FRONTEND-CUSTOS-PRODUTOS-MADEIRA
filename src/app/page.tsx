@@ -7,10 +7,7 @@ import {
   ArrowRight,
   Boxes,
   CircleDollarSign,
-  Package,
-  TreePine,
-  Truck,
-  Users,
+  Factory
 } from 'lucide-react';
 import {
   Cell,
@@ -29,13 +26,19 @@ import { useLowStockMaterials } from '@/hooks/use-raw-materials';
 import { useBusinessBreakEven } from '@/hooks/use-business-break-even';
 import { apiClient } from '@/lib/api-client';
 import { formatCurrency } from '@/lib/format';
-import type { ApiResponse, PricingResult, Product } from '@/types';
+import type { ApiResponse, PricingResult, Product, ProductionRecord } from '@/types';
 
 const COST_COLORS = ['#2563eb', '#16a34a', '#f59e0b'];
 
 function toNumber(value: unknown): number {
   const number = Number(value);
   return Number.isFinite(number) ? number : 0;
+}
+
+function formatProductionQuantity(value: number): string {
+  return new Intl.NumberFormat('pt-BR', {
+    maximumFractionDigits: 2,
+  }).format(value);
 }
 
 function LoadingMessage({ children }: { children: React.ReactNode }) {
@@ -60,6 +63,20 @@ export default function DashboardPage() {
 
   const products = productsQuery.data ?? [];
 
+  const productionHistoryQueries = useQueries({
+    queries: products.map((product) => ({
+      queryKey: ['products', product.id, 'production-history'],
+      queryFn: async () => {
+        const { data } = await apiClient.get<ApiResponse<ProductionRecord[]>>(
+          `/products/${product.id}/production-history`
+        );
+        return data.data;
+      },
+      enabled: Boolean(product.id),
+      staleTime: 60_000,
+    })),
+  });
+
   const productCostQueries = useQueries({
     queries: products.map((product) => ({
       queryKey: ['products', product.id, 'calculate'],
@@ -73,12 +90,6 @@ export default function DashboardPage() {
       staleTime: 60_000,
     })),
   });
-
-  const isLoadingCounts =
-    suppliersQuery.isLoading ||
-    materialsQuery.isLoading ||
-    laborRatesQuery.isLoading ||
-    productsQuery.isLoading;
 
   const isLoadingProductCosts = productCostQueries.some(
     (query) => query.isLoading
@@ -153,6 +164,60 @@ export default function DashboardPage() {
 
   const lowStockMaterials = lowStockQuery.data ?? [];
   const breakEven = breakEvenQuery.data;
+
+  const isLoadingProductionHistory = productionHistoryQueries.some(
+    (query) => query.isLoading
+  );
+
+  const productionHistoryErrors = productionHistoryQueries.filter(
+    (query) => query.isError
+  ).length;
+
+  const productionRecords = productionHistoryQueries.flatMap(
+    (query, index) => {
+      const product = products[index];
+      if (!product || !query.data) return [];
+
+      return query.data.map((record) => ({
+        ...record,
+        productName: product.name,
+      }));
+    }
+  );
+
+  const now = new Date();
+  const currentMonthStart = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    1
+  );
+
+  const currentMonthProductionRecords = productionRecords.filter((record) => {
+    const createdAt = new Date(record.createdAt);
+    return (
+      !Number.isNaN(createdAt.getTime()) &&
+      createdAt >= currentMonthStart &&
+      createdAt <= now
+    );
+  });
+
+  const unitsProducedThisMonth = currentMonthProductionRecords.reduce(
+    (total, record) => total + toNumber(record.quantityProduced),
+    0
+  );
+
+  const productionCostThisMonth = currentMonthProductionRecords.reduce(
+    (total, record) => total + toNumber(record.totalCost),
+    0
+  );
+
+  const recentProductionRecords = [...productionRecords]
+    .filter((record) => !Number.isNaN(new Date(record.createdAt).getTime()))
+    .sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    )
+    .slice(0, 5);
 
   return (
     <div className="space-y-6">
@@ -378,6 +443,120 @@ export default function DashboardPage() {
 
       <MarketplaceProfitability />
 
+      <section>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Factory
+                className="h-4 w-4 text-slate-500"
+                aria-hidden="true"
+              />
+              Produção registrada
+            </CardTitle>
+            <p className="text-sm text-slate-500">
+              Acompanhe as unidades produzidas e os custos registrados neste
+              mês. Os valores são os gravados na data de cada produção e podem
+              diferir dos custos atuais dos produtos.
+            </p>
+          </CardHeader>
+
+          <CardContent>
+            {isLoadingProductionHistory ? (
+              <LoadingMessage>
+                Carregando o histórico de produção...
+              </LoadingMessage>
+            ) : productionRecords.length === 0 ? (
+              <EmptyChartMessage>
+                Ainda não há produções registradas. Ao registrar uma produção
+                na página de um produto, os indicadores e o histórico recente
+                aparecerão aqui.
+              </EmptyChartMessage>
+            ) : (
+              <div className="space-y-5">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="rounded-md bg-slate-50 p-4">
+                    <p className="text-sm text-slate-500">
+                      Unidades produzidas neste mês
+                    </p>
+                    <p className="mt-1 text-xl font-bold text-slate-900">
+                      {formatProductionQuantity(unitsProducedThisMonth)}
+                    </p>
+                  </div>
+
+                  <div className="rounded-md bg-slate-50 p-4">
+                    <p className="text-sm text-slate-500">
+                      Custo de produção registrado neste mês
+                    </p>
+                    <p className="mt-1 text-xl font-bold text-slate-900">
+                      {formatCurrency(productionCostThisMonth)}
+                    </p>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="mb-3 text-sm font-medium text-slate-800">
+                    Produções recentes
+                  </h3>
+
+                  <div className="space-y-3">
+                    {recentProductionRecords.map((record) => (
+                      <div
+                        key={record.id}
+                        className="flex flex-col gap-1 border-t pt-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+                      >
+                        <div className="min-w-0">
+                          <p
+                            className="truncate text-sm font-medium text-slate-800"
+                            title={record.productName}
+                          >
+                            {record.productName}
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            {new Date(record.createdAt).toLocaleDateString(
+                              'pt-BR'
+                            )}
+                            {' · '}
+                            {formatProductionQuantity(
+                              toNumber(record.quantityProduced)
+                            )}{' '}
+                            {toNumber(record.quantityProduced) === 1
+                              ? 'unidade'
+                              : 'unidades'}
+                          </p>
+                        </div>
+
+                        <div className="shrink-0 text-sm sm:text-right">
+                          <p className="font-medium text-slate-800">
+                            {formatCurrency(toNumber(record.totalCost))}
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            Custo registrado
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {productionHistoryErrors > 0 && (
+              <p className="mt-4 flex items-start gap-2 text-xs text-amber-700">
+                <AlertCircle
+                  className="mt-0.5 h-4 w-4 shrink-0"
+                  aria-hidden="true"
+                />
+                Não foi possível carregar o histórico de produção de{' '}
+                {productionHistoryErrors}{' '}
+                {productionHistoryErrors === 1 ? 'produto' : 'produtos'}. Os
+                indicadores consideram apenas os históricos carregados com
+                sucesso.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      </section>
+
       <section className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         <Card>
           <CardHeader>
@@ -447,8 +626,8 @@ export default function DashboardPage() {
                 <p className="text-sm text-slate-600">
                   {toNumber(breakEven.remainingRevenueToBreakEven) > 0
                     ? `Faltam aproximadamente ${formatCurrency(
-                        toNumber(breakEven.remainingRevenueToBreakEven)
-                      )} em vendas para atingir esse valor.`
+                      toNumber(breakEven.remainingRevenueToBreakEven)
+                    )} em vendas para atingir esse valor.`
                     : 'Pelos dados disponíveis, o valor estimado para cobrir os custos fixos já foi alcançado.'}
                 </p>
 

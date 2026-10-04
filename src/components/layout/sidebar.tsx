@@ -55,11 +55,6 @@ export const navigationGroups: NavigationGroup[] = [
     children: [
       { href: '/quotes', label: 'Orçamentos', icon: FileText },
       { href: '/simulador', label: 'Simulador', icon: Sparkles },
-      {
-        href: '/profit-goal',
-        label: 'Quanto preciso vender',
-        icon: TrendingUp,
-      },
     ],
   },
   {
@@ -91,6 +86,11 @@ export const navigationGroups: NavigationGroup[] = [
         href: '/business-goal',
         label: 'Meta do negócio',
         icon: Target,
+      },
+      {
+        href: '/profit-goal',
+        label: 'Quanto preciso vender',
+        icon: TrendingUp,
       },
     ],
   },

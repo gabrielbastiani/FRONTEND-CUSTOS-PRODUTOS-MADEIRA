@@ -80,6 +80,7 @@ export interface Product {
   labors: ProductLabor[];
   createdAt: string;
   updatedAt: string;
+  overheadMode: OverheadMode;
 }
 
 export interface MaterialBreakdownItem {
@@ -112,7 +113,7 @@ export interface PricingResult {
   breakdown: {
     materials: MaterialBreakdownItem[];
     labors: LaborBreakdownItem[];
-    overheadPercent: number;
+    overhead: OverheadInput;
     marginPercent: number;
   };
 }
@@ -284,4 +285,120 @@ export interface MaterialSupplier {
   createdAt: string;
   updatedAt: string;
   priceHistory?: PriceHistoryEntry[];
+}
+
+export type OverheadMode = 'MANUAL' | 'AUTOMATIC';
+
+export type OverheadInput =
+  | { mode: 'MANUAL'; overheadPercent: number }
+  | {
+    mode: 'AUTOMATIC';
+    overheadCostPerUnit: number;
+    monthlyProductiveHours: number;
+    unitsProducibleMonthly: number;
+    totalFixedCostMonthly: number;
+  };
+
+export interface WorkshopSettings {
+  id: string;
+  monthlyProductiveHours: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface FixedCost {
+  id: string;
+  name: string;
+  monthlyValue: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BreakEvenResult {
+  productId: string;
+  productName: string;
+  finalPrice: number;
+  variableCostPerUnit: number;
+  totalFixedCostMonthly: number;
+  contributionMarginPerUnit: number;
+  contributionMarginPercent: number;
+  breakEvenUnitsMonthly: number;
+  breakEvenRevenueMonthly: number;
+  isViable: boolean;
+}
+
+export interface BusinessBreakEvenMixItem {
+  productId: string;
+  productName: string;
+  revenueShare: number;
+  contributionMarginPercent: number;
+}
+
+export interface BusinessBreakEvenResult {
+  totalFixedCostMonthly: number;
+  weightedContributionMarginPercent: number;
+  isEstimated: boolean;
+  breakEvenRevenueMonthly: number;
+  currentMonthRevenue: number;
+  currentMonthUnits: number;
+  progressPercent: number;
+  remainingRevenueToBreakEven: number;
+  projectedMonthRevenue: number;
+  daysElapsedInMonth: number;
+  daysInMonth: number;
+  isOnTrack: boolean;
+  mix: BusinessBreakEvenMixItem[];
+}
+
+export interface ProfitGoalByProductResult {
+  productId: string;
+  productName: string;
+  finalPrice: number;
+  contributionMarginPerUnit: number;
+  unitsNeeded: number;
+  revenueNeeded: number;
+  isViable: boolean;
+}
+
+export interface ProfitGoalByMixResult {
+  weightedContributionMarginPercent: number;
+  revenueNeeded: number;
+  isEstimated: boolean;
+  isViable: boolean;
+}
+
+export interface ProfitGoalResult {
+  desiredProfit: number;
+  totalFixedCostMonthly: number;
+  byMix: ProfitGoalByMixResult;
+  byProduct: ProfitGoalByProductResult[];
+}
+
+export type DiscountType = 'NONE' | 'PERCENT' | 'FIXED';
+
+export interface QuoteItem {
+  id: string;
+  productId: string;
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+}
+
+export interface Quote {
+  id: string;
+  sequenceNumber: number;
+  clientName: string;
+  clientContact: string | null;
+  discountType: DiscountType;
+  discountValue: number;
+  validityDays: number;
+  notes: string | null;
+  subtotal: number;
+  discountAmount: number;
+  totalAmount: number;
+  items: QuoteItem[];
+  createdAt: string;
+  updatedAt: string;
 }

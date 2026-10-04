@@ -29,6 +29,7 @@ import {
   useCreateRawMaterial,
   useUpdateRawMaterial,
 } from "@/hooks/use-raw-materials";
+import { ImageUploader } from "@/components/shared/image-uploader";
 
 const unitValues = Object.keys(UNIT_LABELS) as [
   UnitOfMeasure,
@@ -150,6 +151,14 @@ export function RawMaterialFormDialog({
               Campo opcional para anotar detalhes extras. Não entra em nenhum
               cálculo.
             </FieldHint>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Imagens da matéria-prima</Label>
+            <ImageUploader
+              ownerType="raw-materials"
+              ownerId={rawMaterial?.id}
+            />
           </div>
 
           <div className="rounded-md border bg-slate-50 p-4">

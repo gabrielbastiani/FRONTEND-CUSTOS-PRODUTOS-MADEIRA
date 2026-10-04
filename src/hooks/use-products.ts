@@ -7,6 +7,21 @@ import {
   ProductCostSnapshot,
 } from '@/types';
 import { toast } from 'sonner';
+import { OverheadMode } from '@/types';
+import { BreakEvenResult } from '@/types';
+
+export function useProductBreakEven(id: string) {
+  return useQuery({
+    queryKey: [...QUERY_KEY, id, 'break-even'],
+    queryFn: async () => {
+      const { data } = await apiClient.get<ApiResponse<BreakEvenResult>>(
+        `/products/${id}/break-even`
+      );
+      return data.data;
+    },
+    enabled: !!id,
+  });
+}
 
 const QUERY_KEY = ['products'];
 
@@ -62,6 +77,7 @@ interface CreateProductPayload {
   name: string;
   description?: string;
   marginPercent?: number;
+  overheadMode?: OverheadMode;
   overheadItems?: OverheadItemPayload[];
   materials?: { rawMaterialId: string; quantityUsed: number; wastePercent?: number }[];
   labors?: { laborRateId: string; hoursSpent: number }[];
@@ -71,6 +87,7 @@ interface UpdateProductDetailsPayload {
   name?: string;
   description?: string;
   marginPercent?: number;
+  overheadMode?: OverheadMode;
   overheadItems?: OverheadItemPayload[];
 }
 

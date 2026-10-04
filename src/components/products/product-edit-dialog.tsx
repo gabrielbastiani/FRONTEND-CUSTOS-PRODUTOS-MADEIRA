@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -17,9 +17,10 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { FieldHint } from '@/components/ui/field-hint';
 import { SectionIntro } from '@/components/ui/section-intro';
-import { OverheadCostPicker, OverheadItem } from './overhead-cost-picker';
+import { OverheadModeSelector } from './overhead-mode-selector';
+import { OverheadItem } from './overhead-cost-picker';
 import { ImageUploader } from '@/components/shared/image-uploader';
-import { Product } from '@/types';
+import { Product, OverheadMode } from '@/types';
 import { useUpdateProductDetails } from '@/hooks/use-products';
 
 const schema = z.object({
@@ -38,6 +39,7 @@ interface Props {
 
 export function ProductEditDialog({ open, onOpenChange, product }: Props) {
   const updateMutation = useUpdateProductDetails(product.id);
+  const [overheadMode, setOverheadMode] = useState<OverheadMode>(product.overheadMode);
   const [overheadItems, setOverheadItems] = useState<OverheadItem[]>([]);
 
   const {
@@ -54,6 +56,11 @@ export function ProductEditDialog({ open, onOpenChange, product }: Props) {
     },
   });
 
+  const productionTimeHours = useMemo(
+    () => product.labors.reduce((sum, item) => sum + Number(item.hoursSpent), 0),
+    [product.labors]
+  );
+
   useEffect(() => {
     if (open) {
       reset({
@@ -61,6 +68,7 @@ export function ProductEditDialog({ open, onOpenChange, product }: Props) {
         description: product.description ?? '',
         marginPercent: product.marginPercent,
       });
+      setOverheadMode(product.overheadMode);
       setOverheadItems(
         product.overheadItems.map((item) => ({ name: item.name, value: item.value }))
       );
@@ -72,6 +80,7 @@ export function ProductEditDialog({ open, onOpenChange, product }: Props) {
       name: values.name,
       description: values.description,
       marginPercent: values.marginPercent,
+      overheadMode,
       overheadItems: overheadItems.map((item) => ({
         name: item.name,
         value: item.value,
@@ -133,13 +142,18 @@ export function ProductEditDialog({ open, onOpenChange, product }: Props) {
           <div className="space-y-2">
             <Label>Custos indiretos</Label>
             <FieldHint>
-              Custos que não são de material nem de mão de obra direta, como energia
-              elétrica, depreciação de ferramentas, embalagem ou transporte. Edite,
-              adicione ou remova itens livremente — o percentual de overhead é
-              recalculado automaticamente com base no custo atual de materiais e mão de
-              obra do produto.
+              Escolha entre cadastrar itens manuais (energia, depreciação de
+              ferramentas etc.) ou usar o rateio automático baseado na capacidade
+              produtiva da oficina e nos custos fixos mensais cadastrados em
+              Configurações da oficina.
             </FieldHint>
-            <OverheadCostPicker items={overheadItems} onChange={setOverheadItems} />
+            <OverheadModeSelector
+              mode={overheadMode}
+              onModeChange={setOverheadMode}
+              overheadItems={overheadItems}
+              onOverheadItemsChange={setOverheadItems}
+              productionTimeHours={productionTimeHours}
+            />
           </div>
 
           <div className="space-y-2">

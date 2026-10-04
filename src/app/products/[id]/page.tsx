@@ -6,11 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Pencil, Save, Trash2 } from 'lucide-react';
+import { ArrowLeft, Pencil, Save, Trash2, Tag } from 'lucide-react';
 import {
   useProduct,
   useProductCost,
   useProductHistory,
+  useProductBreakEven,
   useSaveCostSnapshot,
   useRemoveMaterialFromProduct,
   useRemoveLaborFromProduct,
@@ -19,12 +20,14 @@ import {
 } from '@/hooks/use-products';
 import { useProductionHistory } from '@/hooks/use-production';
 import { CostBreakdown } from '@/components/products/cost-breakdown';
+import { BreakEvenCard } from '@/components/products/break-even-card';
 import {
   ProductMaterialPicker,
   DraftMaterialItem,
 } from '@/components/products/product-material-picker';
 import { ProductLaborPicker, DraftLaborItem } from '@/components/products/product-labor-picker';
 import { ProductEditDialog } from '@/components/products/product-edit-dialog';
+import { ProductLabelDialog } from '@/components/products/product-label-dialog';
 import { ProductionForm } from '@/components/products/production-form';
 import { ProductionHistory } from '@/components/products/production-history';
 import { formatCurrency, formatDate } from '@/lib/format';
@@ -39,6 +42,7 @@ export default function ProductDetailPage() {
   const { data: pricing, isLoading: loadingPricing } = useProductCost(productId);
   const { data: history } = useProductHistory(productId);
   const { data: productionRecords } = useProductionHistory(productId);
+  const { data: breakEven, isLoading: loadingBreakEven } = useProductBreakEven(productId);
 
   const saveSnapshotMutation = useSaveCostSnapshot(productId);
   const removeMaterialMutation = useRemoveMaterialFromProduct(productId);
@@ -47,6 +51,48 @@ export default function ProductDetailPage() {
   const addLaborMutation = useAddLaborToProduct(productId);
 
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [labelDialogOpen, setLabelDialogOpen] = useState(false);
+    const finalPrice = Number(pricing?.finalPrice ?? 0);
+  const materialsCost = Number(pricing?.materialsCost ?? 0);
+  const laborCost = Number(pricing?.laborCost ?? 0);
+  const variableCost = materialsCost + laborCost;
+
+  const contributionMarginPercent =
+    finalPrice > 0
+      ? ((finalPrice - variableCost) / finalPrice) * 100
+      : 0;
+
+  const isViable = finalPrice > variableCost;
+
+  const marginHealth = !pricing
+    ? {
+        label: "",
+        cardClass: "border-slate-300 bg-white",
+        textClass: "text-slate-800",
+      }
+    : !isViable
+      ? {
+          label: "Produto inviável",
+          cardClass: "border-red-300 bg-red-50",
+          textClass: "text-red-800",
+        }
+      : contributionMarginPercent < 20
+        ? {
+            label: "Margem apertada",
+            cardClass: "border-red-300 bg-red-50",
+            textClass: "text-red-800",
+          }
+        : contributionMarginPercent < 40
+          ? {
+              label: "Margem razoável",
+              cardClass: "border-amber-300 bg-amber-50",
+              textClass: "text-amber-800",
+            }
+          : {
+              label: "Boa margem",
+              cardClass: "border-emerald-300 bg-emerald-50",
+              textClass: "text-emerald-800",
+            };
 
   const handleAddMaterial = (item: DraftMaterialItem) => {
     addMaterialMutation.mutate({
@@ -80,6 +126,10 @@ export default function ProductDetailPage() {
           Voltar
         </Button>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setLabelDialogOpen(true)}>
+            <Tag className="mr-2 h-4 w-4" />
+            Gerar etiqueta
+          </Button>
           <Button variant="outline" onClick={() => setEditDialogOpen(true)}>
             <Pencil className="mr-2 h-4 w-4" />
             Editar produto
@@ -101,22 +151,59 @@ export default function ProductDetailPage() {
         )}
       </div>
 
-      <Card className="border-2 border-emerald-600 bg-emerald-50">
-        <CardContent className="flex items-center justify-between p-5">
+            <Card
+        className={`border-2 ${
+          pricing && !loadingPricing
+            ? marginHealth.cardClass
+            : "border-slate-300 bg-white"
+        }`}
+      >
+        <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-sm text-emerald-700">Preço final sugerido</p>
+            <p
+              className={`text-sm ${
+                pricing && !loadingPricing
+                  ? marginHealth.textClass
+                  : "text-slate-700"
+              }`}
+            >
+              Preço final sugerido
+            </p>
+
             {loadingPricing || !pricing ? (
               <Skeleton className="mt-1 h-8 w-32" />
             ) : (
-              <p className="text-3xl font-bold text-emerald-800">
-                {formatCurrency(pricing.finalPrice)}
-              </p>
+              <>
+                <p className={`text-3xl font-bold ${marginHealth.textClass}`}>
+                  {formatCurrency(finalPrice)}
+                </p>
+
+                <p className={`mt-2 text-sm font-semibold ${marginHealth.textClass}`}>
+                  {marginHealth.label}
+                  {isViable &&
+                    ` · Margem de contribuição: ${contributionMarginPercent
+                      .toFixed(1)
+                      .replace(".", ",")}%`}
+                </p>
+              </>
             )}
           </div>
+
           {pricing && (
-            <div className="text-right text-sm text-emerald-700">
-              <p>Custo total: {formatCurrency(pricing.subtotalCost)}</p>
-              <p>Margem: {pricing.breakdown.marginPercent}%</p>
+            <div
+              className={`text-left text-sm sm:text-right ${marginHealth.textClass}`}
+            >
+              <p>
+                Custo total: {formatCurrency(Number(pricing.subtotalCost))}
+              </p>
+              <p>
+                Margem sobre o custo:{" "}
+                {Number(pricing.breakdown.marginPercent)}%
+              </p>
+              <p className="mt-1 max-w-md text-xs">
+                A margem de contribuição considera o preço menos materiais e
+                mão de obra. Ela é diferente da margem aplicada sobre o custo.
+              </p>
             </div>
           )}
         </CardContent>
@@ -125,6 +212,7 @@ export default function ProductDetailPage() {
       <Tabs defaultValue="cost">
         <TabsList>
           <TabsTrigger value="cost">Custo atual</TabsTrigger>
+          <TabsTrigger value="break-even">Break-even</TabsTrigger>
           <TabsTrigger value="composition">Composição</TabsTrigger>
           <TabsTrigger value="production">Produção</TabsTrigger>
           <TabsTrigger value="history">Histórico</TabsTrigger>
@@ -135,6 +223,14 @@ export default function ProductDetailPage() {
             <Skeleton className="h-64 w-full" />
           ) : (
             <CostBreakdown pricing={pricing} />
+          )}
+        </TabsContent>
+
+        <TabsContent value="break-even" className="mt-4">
+          {loadingBreakEven || !breakEven ? (
+            <Skeleton className="h-64 w-full" />
+          ) : (
+            <BreakEvenCard breakEven={breakEven} />
           )}
         </TabsContent>
 
@@ -271,6 +367,12 @@ export default function ProductDetailPage() {
         open={editDialogOpen}
         onOpenChange={setEditDialogOpen}
         product={product}
+      />
+
+      <ProductLabelDialog
+        open={labelDialogOpen}
+        onOpenChange={setLabelDialogOpen}
+        productIds={[productId]}
       />
     </div>
   );

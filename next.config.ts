@@ -1,7 +1,15 @@
 import type { NextConfig } from 'next';
 
 const configuredFilesUrl =
-  process.env.NEXT_PUBLIC_FILES_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
+  process.env.NEXT_PUBLIC_FILES_URL || process.env.NEXT_PUBLIC_API_URL;
+
+if (!configuredFilesUrl && process.env.NODE_ENV === 'production') {
+  throw new Error(
+    'NEXT_PUBLIC_API_URL não está configurada. Defina as URLs da API antes de executar next build.'
+  );
+}
+
+const backendBaseUrl = configuredFilesUrl || 'http://localhost:3333';
 
 let backendImagePattern: {
   protocol: 'http' | 'https';
@@ -11,7 +19,7 @@ let backendImagePattern: {
 };
 
 try {
-  const backendUrl = new URL(configuredFilesUrl, 'http://localhost:3333');
+  const backendUrl = new URL(backendBaseUrl);
   backendImagePattern = {
     protocol: backendUrl.protocol === 'https:' ? 'https' : 'http',
     hostname: backendUrl.hostname,
@@ -19,12 +27,7 @@ try {
     pathname: '/uploads/**',
   };
 } catch {
-  backendImagePattern = {
-    protocol: 'http',
-    hostname: 'localhost',
-    port: '3333',
-    pathname: '/uploads/**',
-  };
+  throw new Error(`NEXT_PUBLIC_FILES_URL/NEXT_PUBLIC_API_URL inválida: ${backendBaseUrl}`);
 }
 
 const nextConfig: NextConfig = {

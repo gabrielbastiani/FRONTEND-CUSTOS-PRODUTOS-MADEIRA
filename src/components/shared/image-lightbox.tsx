@@ -44,7 +44,8 @@ export function ImageLightbox({ images, initialIndex, open, onOpenChange }: Prop
 
   if (!open || images.length === 0) return null;
 
-  const currentImage = images[currentIndex];
+  const currentImage = images[Math.min(currentIndex, images.length - 1)];
+  if (!currentImage) return null;
 
   return (
     <div
@@ -84,9 +85,14 @@ export function ImageLightbox({ images, initialIndex, open, onOpenChange }: Prop
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
+          key={currentImage.id}
           src={getImageUrl(currentImage.url)}
           alt={currentImage.filename}
           className="max-h-[80vh] max-w-[85vw] rounded-md object-contain"
+          decoding="async"
+          onError={(event) => {
+            event.currentTarget.style.visibility = 'hidden';
+          }}
         />
         <p className="text-sm text-white/70">{currentImage.filename}</p>
       </div>

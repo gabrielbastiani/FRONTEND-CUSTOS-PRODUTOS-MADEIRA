@@ -45,9 +45,15 @@ export function EntityThumbnail({ ownerType, ownerId, className }: Props) {
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
+          key={firstImage.id}
           src={getImageUrl(firstImage.url)}
           alt={firstImage.filename}
           className="h-full w-full object-cover"
+          loading="lazy"
+          decoding="async"
+          onError={(event) => {
+            event.currentTarget.style.visibility = 'hidden';
+          }}
         />
         {hasMultiple && (
           <span className="absolute bottom-0 right-0 flex h-4 w-4 items-center justify-center rounded-tl-md bg-black/60 text-white">

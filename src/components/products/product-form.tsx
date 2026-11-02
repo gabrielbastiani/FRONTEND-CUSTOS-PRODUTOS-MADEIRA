@@ -14,6 +14,7 @@ import { Separator } from '@/components/ui/separator';
 import { FieldHint } from '@/components/ui/field-hint';
 import { SectionIntro } from '@/components/ui/section-intro';
 import { Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { useCreateProduct } from '@/hooks/use-products';
 import {
   ProductMaterialPicker,
@@ -115,10 +116,11 @@ export function ProductForm() {
           product.id,
           draftImages.map((item) => item.file)
         );
-      } catch {
-        // O produto já foi criado com sucesso; o envio de imagens pode
-        // ser refeito depois na própria tela do produto, então não
-        // bloqueamos a navegação por uma falha aqui.
+      } catch (error) {
+        // O produto já existe. Mostra a falha para que o usuário saiba que
+        // precisa reenviar as fotos pela tela de edição do produto.
+        const message = error instanceof Error ? error.message : 'Falha desconhecida';
+        toast.error(`Produto salvo, mas não foi possível enviar as imagens: ${message}`);
       } finally {
         setIsUploadingImages(false);
       }

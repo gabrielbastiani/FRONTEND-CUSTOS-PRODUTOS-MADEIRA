@@ -60,6 +60,11 @@ export function ImageUploader({ ownerType, ownerId }: Props) {
                   src={getImageUrl(image.url)}
                   alt={image.filename}
                   className="h-full w-full object-cover"
+                  loading="lazy"
+                  decoding="async"
+                  onError={(event) => {
+                    event.currentTarget.style.visibility = 'hidden';
+                  }}
                 />
               </button>
               <button

@@ -15,22 +15,24 @@ interface Props {
 
 export function ProductImagePicker({ items, onChange }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const previewUrlsRef = useRef(new Set<string>());
 
   useEffect(() => {
     return () => {
-      items.forEach((item) => URL.revokeObjectURL(item.previewUrl));
+      previewUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+      previewUrlsRef.current.clear();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    const newItems: DraftImageItem[] = Array.from(files).map((file) => ({
-      file,
-      previewUrl: URL.createObjectURL(file),
-    }));
+    const newItems: DraftImageItem[] = Array.from(files).map((file) => {
+      const previewUrl = URL.createObjectURL(file);
+      previewUrlsRef.current.add(previewUrl);
+      return { file, previewUrl };
+    });
 
     onChange([...items, ...newItems]);
     e.target.value = '';
@@ -39,6 +41,7 @@ export function ProductImagePicker({ items, onChange }: Props) {
   const handleRemove = (index: number) => {
     const target = items[index];
     URL.revokeObjectURL(target.previewUrl);
+    previewUrlsRef.current.delete(target.previewUrl);
     onChange(items.filter((_, i) => i !== index));
   };
 

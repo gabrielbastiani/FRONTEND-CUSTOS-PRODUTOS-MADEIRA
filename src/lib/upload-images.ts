@@ -11,8 +11,7 @@ export async function uploadEntityImages(
 
   const { data } = await apiClient.post<ApiResponse<EntityImage[]>>(
     `/images/${ownerType}/${ownerId}`,
-    formData,
-    { headers: { 'Content-Type': 'multipart/form-data' } }
+    formData
   );
   return data.data;
 }

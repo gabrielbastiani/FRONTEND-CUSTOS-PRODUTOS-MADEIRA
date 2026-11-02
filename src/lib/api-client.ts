@@ -1,10 +1,9 @@
 import axios from 'axios';
 
 export const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333/api/v1',
+  // Não fixamos Content-Type globalmente: Axios define application/json para
+  // objetos e adiciona automaticamente o boundary correto em FormData.
 });
 
 apiClient.interceptors.response.use(

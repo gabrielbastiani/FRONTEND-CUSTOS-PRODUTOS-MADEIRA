@@ -32,8 +32,7 @@ export function useUploadImages(ownerType: ImageOwnerType, ownerId: string | und
 
       const { data } = await apiClient.post<ApiResponse<EntityImage[]>>(
         `/images/${ownerType}/${ownerId}`,
-        formData,
-        { headers: { 'Content-Type': 'multipart/form-data' } }
+        formData
       );
       return data.data;
     },

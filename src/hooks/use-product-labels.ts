@@ -23,7 +23,8 @@ export function useGenerateProductLabels() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      // Dá tempo ao navegador de iniciar o download antes de liberar o Blob.
+      window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
     },
     onError: (error: Error) => toast.error(error.message),
   });

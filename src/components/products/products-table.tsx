@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -24,7 +25,7 @@ import {
 import { Eye, Trash2 } from 'lucide-react';
 import { Product } from '@/types';
 import { useDeleteProduct } from '@/hooks/use-products';
-import { ProductPriceCell } from './product-price-cell';
+import { ProductPricingCells } from './product-price-cell';
 import { EntityThumbnail } from '@/components/shared/entity-thumbnail';
 
 interface Props {
@@ -61,29 +62,48 @@ export function ProductsTable({ products }: Props) {
               <TableHead>Itens de material</TableHead>
               <TableHead>Itens de mão de obra</TableHead>
               <TableHead>Margem</TableHead>
+              <TableHead>Custo total</TableHead>
               <TableHead>Preço final</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
+
           <TableBody>
             {products.map((product) => (
               <TableRow key={product.id}>
                 <TableCell>
-                  <EntityThumbnail ownerType="products" ownerId={product.id} />
+                  <EntityThumbnail
+                    ownerType="products"
+                    ownerId={product.id}
+                  />
                 </TableCell>
-                <TableCell className="font-medium">{product.name}</TableCell>
-                <TableCell>{product.materials?.length ?? 0}</TableCell>
-                <TableCell>{product.labors?.length ?? 0}</TableCell>
-                <TableCell>{product.marginPercent}%</TableCell>
+
+                <TableCell className="font-medium">
+                  {product.name}
+                </TableCell>
+
                 <TableCell>
-                  <ProductPriceCell productId={product.id} />
+                  {product.materials?.length ?? 0}
                 </TableCell>
+
+                <TableCell>
+                  {product.labors?.length ?? 0}
+                </TableCell>
+
+                <TableCell>
+                  {product.marginPercent}%
+                </TableCell>
+
+                {/* Custo total e preço final */}
+                <ProductPricingCells productId={product.id} />
+
                 <TableCell className="text-right">
                   <Link href={`/products/${product.id}`}>
                     <Button variant="ghost" size="icon">
                       <Eye className="h-4 w-4" />
                     </Button>
                   </Link>
+
                   <Button
                     variant="ghost"
                     size="icon"
@@ -98,18 +118,30 @@ export function ProductsTable({ products }: Props) {
         </Table>
       </div>
 
-      <AlertDialog open={!!deletingId} onOpenChange={() => setDeletingId(null)}>
+      <AlertDialog
+        open={!!deletingId}
+        onOpenChange={() => setDeletingId(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remover produto?</AlertDialogTitle>
+            <AlertDialogTitle>
+              Remover produto?
+            </AlertDialogTitle>
+
             <AlertDialogDescription>
               Essa ação não pode ser desfeita e removerá também o histórico de precificação
               associado.
             </AlertDialogDescription>
           </AlertDialogHeader>
+
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmDelete}>Remover</AlertDialogAction>
+            <AlertDialogCancel>
+              Cancelar
+            </AlertDialogCancel>
+
+            <AlertDialogAction onClick={handleConfirmDelete}>
+              Remover
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

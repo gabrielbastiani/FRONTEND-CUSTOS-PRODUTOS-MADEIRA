@@ -32,7 +32,7 @@ export interface SimPricingResult {
   breakdown: {
     materials: SimMaterialBreakdown[];
     labors: SimLaborBreakdown[];
-    overheadPercent: number;
+    overheadCostPerUnit: number;
     marginPercent: number;
   };
 }
@@ -42,15 +42,13 @@ function round2(value: number): number {
 }
 
 /**
- * Réplica fiel de calculateProductPricing do backend (pricingCalculator.ts),
- * adaptada para trabalhar com valores já resolvidos no cliente (sem Prisma.Decimal
- * e sem precisar buscar o fornecedor padrão, já que o unitCost é escolhido
- * interativamente pelo usuário no simulador).
+ * Versão de simulação do cálculo de preço, adaptada para valores já resolvidos
+ * no cliente. O custo indireto recebido já é um valor em reais por unidade.
  */
 export function simulateProductPricing(
   materials: SimMaterialInput[],
   labors: SimLaborInput[],
-  overheadPercent: number,
+  overheadCostPerUnit: number,
   marginPercent: number
 ): SimPricingResult {
   const materialBreakdown: SimMaterialBreakdown[] = materials.map((item) => {
@@ -77,7 +75,7 @@ export function simulateProductPricing(
   const laborCost = round2(laborBreakdown.reduce((sum, l) => sum + l.totalCost, 0));
 
   const directCost = materialsCost + laborCost;
-  const overheadCost = round2(directCost * (overheadPercent / 100));
+  const overheadCost = round2(Math.max(0, overheadCostPerUnit));
   const subtotalCost = round2(directCost + overheadCost);
   const marginValue = round2(subtotalCost * (marginPercent / 100));
   const finalPrice = round2(subtotalCost + marginValue);
@@ -92,28 +90,23 @@ export function simulateProductPricing(
     breakdown: {
       materials: materialBreakdown,
       labors: laborBreakdown,
-      overheadPercent,
+      overheadCostPerUnit: overheadCost,
       marginPercent,
     },
   };
 }
 
 /**
- * Calcula o overheadPercent equivalente a partir de um rateio de custo fixo
- * mensal dividido pela quantidade de peças produzidas no mês, relativizado
- * ao custo direto (materiais + mão de obra) do produto simulado.
- * Ex: aluguel de R$900/mês, produzindo 30 peças => R$30/peça de rateio.
- * Se o custo direto da peça é R$60, isso equivale a 50% de overhead.
+ * Calcula uma parcela adicional em reais por unidade a partir de um custo
+ * fixo mensal informado para uma simulação e da quantidade mensal estimada.
+ * Não altera o custo indireto já cadastrado no produto.
  */
-export function calculateOverheadPercentFromFixedCost(
+export function calculateAdditionalOverheadPerUnit(
   fixedCostPerMonth: number,
-  unitsProducedPerMonth: number,
-  directCost: number
+  unitsProducedPerMonth: number
 ): number {
-  if (unitsProducedPerMonth <= 0 || directCost <= 0) return 0;
-
-  const fixedCostPerUnit = fixedCostPerMonth / unitsProducedPerMonth;
-  return round2((fixedCostPerUnit / directCost) * 100);
+  if (fixedCostPerMonth <= 0 || unitsProducedPerMonth <= 0) return 0;
+  return round2(fixedCostPerMonth / unitsProducedPerMonth);
 }
 
 export function calculateDirectCostOnly(

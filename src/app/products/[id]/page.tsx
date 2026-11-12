@@ -18,6 +18,7 @@ import {
   useAddMaterialToProduct,
   useAddLaborToProduct,
 } from '@/hooks/use-products';
+import { calculateContributionVariableCost } from '@/lib/contribution-cost';
 import { useProductionHistory } from '@/hooks/use-production';
 import { CostBreakdown } from '@/components/products/cost-breakdown';
 import { BreakEvenCard } from '@/components/products/break-even-card';
@@ -53,9 +54,7 @@ export default function ProductDetailPage() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [labelDialogOpen, setLabelDialogOpen] = useState(false);
     const finalPrice = Number(pricing?.finalPrice ?? 0);
-  const materialsCost = Number(pricing?.materialsCost ?? 0);
-  const laborCost = Number(pricing?.laborCost ?? 0);
-  const variableCost = materialsCost + laborCost;
+  const variableCost = calculateContributionVariableCost(pricing);
 
   const contributionMarginPercent =
     finalPrice > 0
@@ -302,8 +301,8 @@ export default function ProductDetailPage() {
               {!product.overheadItems || product.overheadItems.length === 0 ? (
                 <p className="text-sm text-slate-500">
                   Nenhum custo indireto cadastrado. Clique em &quot;Editar produto&quot; no
-                  topo da página para adicionar itens como energia, embalagem ou depreciação
-                  de ferramentas.
+                  topo da página para adicionar itens variáveis por unidade, como cola,
+                  lixa, embalagem e consumíveis.
                 </p>
               ) : (
                 <>
@@ -312,7 +311,14 @@ export default function ProductDetailPage() {
                       key={item.id}
                       className="flex items-center justify-between rounded-md border p-3 text-sm"
                     >
-                      <span className="font-medium">{item.name}</span>
+                      <span className="font-medium">
+                        {item.name}
+                        {item.isFixedCostAllocation && (
+                          <span className="ml-2 text-xs font-normal text-amber-700">
+                            (rateio fixo)
+                          </span>
+                        )}
+                      </span>
                       <span>{formatCurrency(item.value)}</span>
                     </div>
                   ))}

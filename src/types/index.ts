@@ -80,7 +80,6 @@ export interface Product {
   labors: ProductLabor[];
   createdAt: string;
   updatedAt: string;
-  overheadMode: OverheadMode;
 }
 
 export interface MaterialBreakdownItem {
@@ -142,6 +141,7 @@ export interface ProductOverheadItem {
   productId: string;
   name: string;
   value: number;
+  isFixedCostAllocation?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -287,23 +287,10 @@ export interface MaterialSupplier {
   priceHistory?: PriceHistoryEntry[];
 }
 
-export type OverheadMode = 'MANUAL' | 'AUTOMATIC';
-
-export type OverheadInput =
-  | { mode: 'MANUAL'; overheadPercent: number }
-  | {
-    mode: 'AUTOMATIC';
-    overheadCostPerUnit: number;
-    monthlyProductiveHours: number;
-    unitsProducibleMonthly: number;
-    totalFixedCostMonthly: number;
-  };
-
-export interface WorkshopSettings {
-  id: string;
-  monthlyProductiveHours: number;
-  createdAt: string;
-  updatedAt: string;
+export interface OverheadInput {
+  mode: 'MANUAL';
+  overheadPercent: number;
+  overheadItems?: { name: string; value: number; isFixedCostAllocation?: boolean }[];
 }
 
 export interface FixedCost {

@@ -7,7 +7,6 @@ import {
   ProductCostSnapshot,
 } from '@/types';
 import { toast } from 'sonner';
-import { OverheadMode } from '@/types';
 import { BreakEvenResult } from '@/types';
 
 export function useProductBreakEven(id: string) {
@@ -71,13 +70,13 @@ export function useProductHistory(id: string) {
 interface OverheadItemPayload {
   name: string;
   value: number;
+  isFixedCostAllocation?: boolean;
 }
 
 interface CreateProductPayload {
   name: string;
   description?: string;
   marginPercent?: number;
-  overheadMode?: OverheadMode;
   overheadItems?: OverheadItemPayload[];
   materials?: { rawMaterialId: string; quantityUsed: number; wastePercent?: number }[];
   labors?: { laborRateId: string; hoursSpent: number }[];
@@ -87,7 +86,6 @@ interface UpdateProductDetailsPayload {
   name?: string;
   description?: string;
   marginPercent?: number;
-  overheadMode?: OverheadMode;
   overheadItems?: OverheadItemPayload[];
 }
 

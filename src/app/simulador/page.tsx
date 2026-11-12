@@ -17,7 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
   simulateProductPricing,
-  calculateOverheadPercentFromFixedCost,
+  calculateAdditionalOverheadPerUnit,
   calculateDirectCostOnly,
   type SimMaterialInput,
   type SimLaborInput,
@@ -88,7 +88,7 @@ export default function SimuladorPage() {
     setMaterialsState(initialMaterials);
     setLaborsState(initialLabors);
     setMarginPercent(Number(product.marginPercent));
-    setOverheadPercent(Number(product.overheadPercent));
+    setOverheadPercent(0);
     setOverheadMode('percent');
   }, [product]);
 
@@ -97,15 +97,32 @@ export default function SimuladorPage() {
     [materialsState, laborsState]
   );
 
-  const effectiveOverheadPercent = useMemo(() => {
-    if (overheadMode === 'percent') return overheadPercent;
-    return calculateOverheadPercentFromFixedCost(fixedCostPerMonth, unitsProducedPerMonth, directCost);
+  const configuredOverheadCost = useMemo(() => {
+    if (!product) return 0;
+    const items = product.overheadItems ?? [];
+    if (items.length > 0) {
+      return items.reduce((sum, item) => sum + Number(item.value), 0);
+    }
+    // Compatibilidade com produtos antigos que ainda tenham apenas percentual salvo.
+    return directCost * (Number(product.overheadPercent ?? 0) / 100);
+  }, [product, directCost]);
+
+  const additionalOverheadCost = useMemo(() => {
+    if (overheadMode === 'percent') {
+      return directCost * (overheadPercent / 100);
+    }
+    return calculateAdditionalOverheadPerUnit(fixedCostPerMonth, unitsProducedPerMonth);
   }, [overheadMode, overheadPercent, fixedCostPerMonth, unitsProducedPerMonth, directCost]);
 
   const simulatedResult = useMemo(() => {
     if (materialsState.length === 0 && laborsState.length === 0) return null;
-    return simulateProductPricing(materialsState, laborsState, effectiveOverheadPercent, marginPercent);
-  }, [materialsState, laborsState, effectiveOverheadPercent, marginPercent]);
+    return simulateProductPricing(
+      materialsState,
+      laborsState,
+      configuredOverheadCost + additionalOverheadCost,
+      marginPercent
+    );
+  }, [materialsState, laborsState, configuredOverheadCost, additionalOverheadCost, marginPercent]);
 
   const realResult = useMemo(() => {
     if (!product) return null;
@@ -135,10 +152,15 @@ export default function SimuladorPage() {
       hoursSpent: Number(l.hoursSpent),
     }));
 
+    const realOverheadItems = product.overheadItems ?? [];
+    const realOverheadCost = realOverheadItems.length > 0
+      ? realOverheadItems.reduce((sum, item) => sum + Number(item.value), 0)
+      : calculateDirectCostOnly(realMaterials, realLabors) * (Number(product.overheadPercent ?? 0) / 100);
+
     return simulateProductPricing(
       realMaterials,
       realLabors,
-      Number(product.overheadPercent),
+      realOverheadCost,
       Number(product.marginPercent)
     );
   }, [product]);
@@ -174,7 +196,7 @@ export default function SimuladorPage() {
           <CardTitle>Escolha um produto</CardTitle>
           <p className="text-sm text-muted-foreground">
             Selecione um produto já cadastrado. O simulador vai carregar os dados reais dele
-            (materiais, mão de obra, overhead e margem) para que você possa testar mudanças
+            (materiais, mão de obra, custos indiretos por unidade e margem) para que você possa testar mudanças
             sem afetar o cadastro original.
           </p>
         </CardHeader>
@@ -339,8 +361,8 @@ export default function SimuladorPage() {
                 <div className="grid gap-2">
                   <Label>Overhead: {overheadPercent.toFixed(1)}%</Label>
                   <p className="text-xs text-muted-foreground">
-                    Use esse modo se você já sabe, de forma aproximada, quantos % do custo
-                    direto (materiais + mão de obra) quer adicionar para cobrir despesas fixas.
+                    Adicione um percentual extra ao custo indireto que já está cadastrado
+                    no produto. Esse ajuste existe apenas neste cenário e não altera o cadastro.
                   </p>
                   <Slider
                     value={[overheadPercent]}
@@ -353,10 +375,9 @@ export default function SimuladorPage() {
               ) : (
                 <div className="grid gap-4 max-w-md">
                   <p className="text-xs text-muted-foreground">
-                    Use esse modo se você não sabe qual percentual usar, mas sabe quanto gasta
-                    fixo por mês e quantas peças costuma produzir. O sistema calcula o
-                    percentual de overhead equivalente automaticamente, dividindo o custo fixo
-                    pela quantidade de peças e comparando com o custo direto desta peça.
+                    Para este cenário, divida um valor mensal pela quantidade estimada de
+                    peças. O cálculo é opcional e serve apenas para simular o impacto; não
+                    altera o produto nem as configurações da oficina.
                   </p>
                   <div className="grid gap-2">
                     <Label>Custo fixo mensal (aluguel, energia etc.)</Label>
@@ -375,8 +396,7 @@ export default function SimuladorPage() {
                     />
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Isso equivale a {effectiveOverheadPercent.toFixed(1)}% de overhead sobre o custo
-                    direto deste produto.
+                    Custo indireto adicional neste cenário: {formatBRL(additionalOverheadCost)} por unidade.
                   </p>
                 </div>
               )}

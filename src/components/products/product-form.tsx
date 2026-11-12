@@ -21,12 +21,11 @@ import {
   DraftMaterialItem,
 } from './product-material-picker';
 import { ProductLaborPicker, DraftLaborItem } from './product-labor-picker';
-import { OverheadModeSelector } from './overhead-mode-selector';
+import { ProductOverheadEditor } from './product-overhead-editor';
 import { OverheadItem } from './overhead-cost-picker';
 import { ProductImagePicker, DraftImageItem } from './product-image-picker';
 import { uploadEntityImages } from '@/lib/upload-images';
 import { formatCurrency } from '@/lib/format';
-import { OverheadMode } from '@/types';
 
 const schema = z.object({
   name: z.string().min(2, 'Nome deve ter ao menos 2 caracteres'),
@@ -42,7 +41,6 @@ export function ProductForm() {
 
   const [materials, setMaterials] = useState<DraftMaterialItem[]>([]);
   const [labors, setLabors] = useState<DraftLaborItem[]>([]);
-  const [overheadMode, setOverheadMode] = useState<OverheadMode>('MANUAL');
   const [overheadItems, setOverheadItems] = useState<OverheadItem[]>([]);
   const [draftImages, setDraftImages] = useState<DraftImageItem[]>([]);
   const [isUploadingImages, setIsUploadingImages] = useState(false);
@@ -67,35 +65,15 @@ export function ProductForm() {
     setLabors((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const productionTimeHours = useMemo(
-    () => labors.reduce((sum, l) => sum + l.hoursSpent, 0),
-    [labors]
-  );
-
-  const preview = useMemo(() => {
-    const materialsCost = materials.reduce((sum) => {
-      return sum;
-    }, 0);
-
-    const laborCost = labors.reduce(
-      (sum, item) => sum + item.hourlyRate * item.hoursSpent,
-      0
-    );
-
-    const overheadCost = overheadItems.reduce((sum, item) => sum + item.value, 0);
-
-    return { materialsCost, laborCost, overheadCost };
-  }, [materials, labors, overheadItems]);
-
   const onSubmit = async (values: FormValues) => {
     const product = await createMutation.mutateAsync({
       name: values.name,
       description: values.description,
       marginPercent: values.marginPercent,
-      overheadMode,
       overheadItems: overheadItems.map((item) => ({
         name: item.name,
         value: item.value,
+        isFixedCostAllocation: item.isFixedCostAllocation ?? false,
       })),
       materials: materials.map((m) => ({
         rawMaterialId: m.rawMaterialId,
@@ -243,9 +221,9 @@ export function ProductForm() {
           <FieldHint>
             Informe quais tipos de mão de obra são necessários para fabricar esse produto
             e quantas horas cada um demanda. O sistema multiplica automaticamente as horas
-            pelo valor/hora cadastrado para calcular o custo de mão de obra. O tempo total
-            aqui também é usado, quando aplicável, para o rateio automático de custos
-            indiretos.
+            pelo valor/hora cadastrado para calcular o custo de mão de obra. Essas horas
+            representam somente o tempo de trabalho deste produto e não dependem de uma
+            capacidade mensal da oficina.
           </FieldHint>
           <ProductLaborPicker onAdd={(item) => setLabors((prev) => [...prev, item])} />
           {labors.length > 0 && (
@@ -283,12 +261,9 @@ export function ProductForm() {
           <CardTitle className="text-base">Custos indiretos</CardTitle>
         </CardHeader>
         <CardContent>
-          <OverheadModeSelector
-            mode={overheadMode}
-            onModeChange={setOverheadMode}
+          <ProductOverheadEditor
             overheadItems={overheadItems}
             onOverheadItemsChange={setOverheadItems}
-            productionTimeHours={productionTimeHours}
           />
         </CardContent>
       </Card>
@@ -308,12 +283,10 @@ export function ProductForm() {
             <span className="text-slate-600">Mão de obra</span>
             <span>{formatCurrency(estimatedLaborCost)}</span>
           </div>
-          {overheadMode === 'MANUAL' && (
-            <div className="flex justify-between">
-              <span className="text-slate-600">Custos indiretos</span>
-              <span>{formatCurrency(estimatedOverhead)}</span>
-            </div>
-          )}
+          <div className="flex justify-between">
+            <span className="text-slate-600">Custos indiretos</span>
+            <span>{formatCurrency(estimatedOverhead)}</span>
+          </div>
           <div className="flex justify-between">
             <span className="text-slate-600">Margem de lucro</span>
             <span>{marginPercent}%</span>

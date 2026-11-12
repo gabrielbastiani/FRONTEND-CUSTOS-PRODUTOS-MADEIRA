@@ -398,91 +398,52 @@ export function CostBreakdown({ pricing }: Props) {
             Custos indiretos
             <TermHelp
               term="Custos indiretos"
-              explanation="Despesas da oficina que não pertencem a um único produto, como energia, aluguel ou manutenção. O rateio atribui uma parte dessas despesas a cada produto."
+              explanation="Custos indiretos por unidade. Os custos variáveis são deduzidos na margem de contribuição; valores classificados como rateio fixo entram no preço, mas não são contados novamente contra as despesas fixas mensais no ponto de equilíbrio."
             />
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
-          {overhead.mode === 'MANUAL' ? (
-            <div className="flex justify-between gap-4">
-              <span className="flex items-center text-slate-600">
-                Rateio manual
-                <TermHelp
-                  term="Rateio"
-                  explanation="Divisão de uma despesa entre os produtos. Neste modo, o custo indireto é calculado usando o percentual manual configurado."
-                />
-                {' '}(itens fixos, {formatNumber(overhead.overheadPercent)}% sobre
-                custo direto)
-                <TermHelp
-                  term="Custo direto"
-                  explanation="Custo ligado diretamente à fabricação do produto. Nesta tela, inclui materiais e mão de obra."
-                />
-              </span>
-              <span className="shrink-0">
-                {formatCurrency(pricing.overheadCost)}
-              </span>
+          {(overhead.overheadItems ?? []).length > 0 ? (
+            <div className="space-y-2">
+              {(overhead.overheadItems ?? []).map((item, index) => (
+                <div key={`${item.name}-${index}`} className="flex justify-between gap-4">
+                  <span className="text-slate-600">
+                    {item.name}
+                    {item.isFixedCostAllocation && (
+                      <span className="ml-2 text-xs text-amber-700">
+                        (rateio fixo)
+                      </span>
+                    )}
+                  </span>
+                  <span className="shrink-0">{formatCurrency(item.value)}</span>
+                </div>
+              ))}
             </div>
-          ) : !overhead.isConfigured ? (
-            <p className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
-              O rateio automático está ativado, mas a capacidade produtiva
-              mensal da oficina ainda não foi configurada (ou está zerada). Por
-              isso, o custo indireto está sendo considerado como R$ 0,00. Acesse
-              Configurações da oficina para definir a capacidade produtiva
-              mensal.
-            </p>
+          ) : overhead.overheadPercent > 0 ? (
+            <div className="flex justify-between gap-4">
+              <span className="text-slate-600">
+                Percentual indireto legado ({formatNumber(overhead.overheadPercent)}%)
+              </span>
+              <span className="shrink-0">{formatCurrency(pricing.overheadCost)}</span>
+            </div>
           ) : (
-            <>
-              <div className="flex justify-between gap-4">
-                <span className="flex items-center text-slate-600">
-                  Capacidade produtiva mensal
-                  <TermHelp
-                    term="Capacidade produtiva mensal"
-                    explanation="Estimativa das horas disponíveis para produção na oficina durante um mês. O sistema usa esse dado no cálculo automático dos custos indiretos."
-                  />
-                </span>
-                <span>
-                  {formatNumber(overhead.monthlyProductiveHours)}h
-                </span>
-              </div>
-
-              <div className="flex justify-between gap-4">
-                <span className="flex items-center text-slate-600">
-                  Unidades produzíveis por mês
-                  <TermHelp
-                    term="Unidades produzíveis"
-                    explanation="Estimativa de quantas unidades deste produto podem ser fabricadas por mês, considerando a capacidade produtiva e o tempo de mão de obra cadastrado."
-                  />
-                </span>
-                <span>{formatNumber(overhead.unitsProducibleMonthly)}</span>
-              </div>
-
-              <div className="flex justify-between gap-4">
-                <span className="flex items-center text-slate-600">
-                  Custo fixo mensal total
-                  <TermHelp
-                    term="Custo fixo mensal"
-                    explanation="Total das despesas fixas mensais da oficina consideradas no cálculo, como aluguel ou outras despesas recorrentes cadastradas."
-                  />
-                </span>
-                <span>
-                  {formatCurrency(overhead.totalFixedCostMonthly)}
-                </span>
-              </div>
-
-              <Separator />
-
-              <div className="flex justify-between gap-4 font-medium">
-                <span className="flex items-center">
-                  Custo indireto rateado (automático)
-                  <TermHelp
-                    term="Custo indireto rateado"
-                    explanation="Parte dos custos fixos mensais atribuída a este produto pelo cálculo automático."
-                  />
-                </span>
-                <span>{formatCurrency(pricing.overheadCost)}</span>
-              </div>
-            </>
+            <p className="text-sm text-slate-500">
+              Nenhum custo indireto foi informado para este produto.
+            </p>
           )}
+
+          <Separator />
+
+          <div className="flex justify-between gap-4 font-medium">
+            <span className="flex items-center">
+              Custo indireto por unidade
+              <TermHelp
+                term="Custo indireto por unidade"
+                explanation="Soma dos valores informados diretamente nos custos indiretos deste produto. Esses valores são adicionados uma vez por unidade fabricada."
+              />
+            </span>
+            <span>{formatCurrency(pricing.overheadCost)}</span>
+          </div>
         </CardContent>
       </Card>
 
@@ -512,7 +473,7 @@ export function CostBreakdown({ pricing }: Props) {
               Custos indiretos
               <TermHelp
                 term="Custos indiretos"
-                explanation="Despesas da oficina atribuídas ao produto, como uma parte da energia, do aluguel ou da manutenção."
+                explanation="Soma dos custos indiretos informados por unidade. Valores classificados como rateio fixo entram no custo e no preço, mas não são contados novamente como custo variável, pois as despesas mensais já entram no ponto de equilíbrio."
               />
             </span>
             <span>{formatCurrency(pricing.overheadCost)}</span>
